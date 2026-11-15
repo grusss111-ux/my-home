@@ -1,265 +1,35 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Дом & Бюджет">
-    <title>Дом & Бюджет — Умный учёт запасов и чеков</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Шрифт Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Иконки Phosphor Icons -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        cream: {
-                            50: '#FDFBF7',
-                            100: '#F7F3EA',
-                            200: '#ECE4D3',
-                            300: '#DFD2B8',
-                        },
-                        olive: {
-                            600: '#556B2F',
-                            700: '#435524',
-                            800: '#33411B',
-                            900: '#242E13',
-                        },
-                        terracotta: {
-                            500: '#D96B43',
-                            600: '#C25630',
-                            700: '#A14322',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body {
-            background-color: #F7F3EA;
-            color: #242E13;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-        @keyframes spin-slow {
-            to { transform: rotate(360deg); }
-        }
-        .animate-spin-slow {
-            animation: spin-slow 1.5s linear infinite;
-        }
-    </style>
-</head>
-<body class="min-h-screen flex flex-col pb-24">
-
-    <!-- Верхняя шапка -->
-    <header class="sticky top-0 z-30 bg-cream-50/95 backdrop-blur-md border-b border-cream-200 px-4 py-3 shadow-xs">
-        <div class="max-w-xl mx-auto flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2.5">
-                <div class="w-10 h-10 rounded-2xl bg-olive-700 text-cream-50 flex items-center justify-center shadow-xs">
-                    <i class="ph-fill ph-house-line text-2xl"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-lg leading-tight text-olive-900">Дом & Бюджет</h1>
-                    <p class="text-xs text-olive-700/80" id="headerSubtitle">Всё под контролем</p>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-2">
-                <button onclick="toggleSound()" id="soundBtn" title="Звуковые напоминания"
-                    class="p-2.5 rounded-xl bg-cream-100 hover:bg-cream-200 text-olive-800 transition active:scale-95">
-                    <i class="ph-fill ph-bell-ringing text-xl" id="soundIcon"></i>
-                </button>
-                <button onclick="openSettingsModal()" title="Настройки, API-ключ и бэкап"
-                    class="p-2.5 rounded-xl bg-cream-100 hover:bg-cream-200 text-olive-800 transition active:scale-95">
-                    <i class="ph-fill ph-gear text-xl"></i>
-                </button>
-                <button onclick="openResetModal()" title="Сбросить к стартовому списку"
-                    class="p-2.5 rounded-xl bg-cream-100 hover:bg-cream-200 text-olive-800 transition active:scale-95">
-                    <i class="ph ph-arrows-counter-clockwise text-xl"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- Плашка-напоминание о заканчивающихся вещах -->
-        <div id="alertBanner" class="hidden max-w-xl mx-auto mt-2.5">
-            <button onclick="switchTab('shopping')"
-                class="w-full flex items-center justify-between bg-terracotta-500 hover:bg-terracotta-600 text-white px-3.5 py-2.5 rounded-2xl shadow-md transition active:scale-[0.99]">
-                <div class="flex items-center gap-2.5 text-left">
-                    <i class="ph-fill ph-warning-circle text-2xl shrink-0"></i>
-                    <div>
-                        <div class="text-[11px] font-semibold uppercase tracking-wider opacity-90">Пора заказать</div>
-                        <div class="text-sm font-bold leading-snug" id="alertBannerText">Заканчиваются запасы (0 поз.)</div>
-                    </div>
-                </div>
-                <span class="bg-white/20 px-2.5 py-1 rounded-xl text-xs font-semibold flex items-center gap-1 shrink-0">
-                    Список <i class="ph-bold ph-arrow-right"></i>
-                </span>
-            </button>
-        </div>
-    </header>
-
-    <!-- Основной контейнер контента -->
-    <main class="flex-1 max-w-xl w-full mx-auto px-4 pt-4">
-
-        <!-- ==========================================
-             ВКЛАДКА 1: ЗАПАСЫ ДОМА (ЕДА + ГИГИЕНА + БЫТ)
-             ========================================== -->
-        <section id="tab-inventory" class="space-y-4">
-            <!-- Поиск и кнопка добавления -->
-            <div class="flex gap-2">
-                <div class="relative flex-1">
-                    <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-olive-600 text-lg"></i>
-                    <input type="text" id="searchInput" oninput="renderInventory()" placeholder="Найти продукт, шампунь..."
-                        class="w-full pl-10 pr-4 py-3 rounded-2xl bg-cream-50 border border-cream-300 text-olive-900 placeholder-olive-600/50 focus:outline-none focus:border-olive-600 text-sm">
-                </div>
-                <button onclick="openAddModal()"
-                    class="px-4 py-3 rounded-2xl bg-olive-700 hover:bg-olive-800 text-cream-50 font-semibold text-sm flex items-center gap-1.5 shadow-xs transition active:scale-95 shrink-0">
-                    <i class="ph-bold ph-plus text-lg"></i> Добавить
-                </button>
-            </div>
-
-            <!-- Быстрые фильтры по группам -->
-            <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1" id="categoryFilters"></div>
-
-            <!-- Список запасов -->
-            <div id="inventoryList" class="space-y-2.5"></div>
-        </section>
-
-        <!-- ==========================================
-             ВКЛАДКА 2: УМНЫЙ СКАНЕР ЧЕКОВ (ФОТО И ТЕКСТ)
-             ========================================== -->
-        <section id="tab-scanner" class="hidden space-y-4">
-            <div class="bg-cream-50 border border-cream-200 rounded-3xl p-4 shadow-xs space-y-3">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-10 h-10 rounded-2xl bg-terracotta-500/15 text-terracotta-600 flex items-center justify-center shrink-0">
-                        <i class="ph-fill ph-receipt text-2xl"></i>
-                    </div>
-                    <div>
-                        <h2 class="font-bold text-base text-olive-900">Добавить чек из доставки</h2>
-                        <p class="text-xs text-olive-700/80">ИИ сам пополнит запасы дома и запишет расходы</p>
+<!-- ... existing code ... -->
+                    <div class="bg-white border border-cream-200 rounded-2xl p-2.5 text-center">
+                        <div class="text-[11px] font-semibold text-olive-700/70">Углеводы</div>
+                        <div class="font-extrabold text-sm text-olive-900 mt-0.5">
+                            <span id="eatenCarb">0</span> / <span id="targetCarb">240</span> г
+                        </div>
                     </div>
                 </div>
 
-                <!-- Загрузка скриншота / фото -->
-                <div>
-                    <label for="receiptImageInput"
-                        class="w-full border-2 border-dashed border-olive-600/40 hover:border-olive-700 bg-cream-100/70 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition active:scale-[0.99]">
-                        <i class="ph-fill ph-image text-3xl text-olive-700 mb-1"></i>
-                        <span class="font-bold text-sm text-olive-900">Загрузить скриншот чека или фото</span>
-                        <span class="text-xs text-olive-700/70 mt-0.5">Лавка, Самокат, Ozon, ВкусВилл, Пятёрочка и др.</span>
-                    </label>
-                    <input type="file" id="receiptImageInput" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
-                </div>
-
-                <!-- Предпросмотр загруженного скриншота -->
-                <div id="imagePreviewBox" class="hidden relative rounded-2xl overflow-hidden border border-cream-300 bg-white">
-                    <img id="receiptPreviewImg" src="" alt="Чек" class="max-h-56 w-full object-contain mx-auto">
-                    <button onclick="clearReceiptImage()"
-                        class="absolute top-2 right-2 p-2 rounded-xl bg-olive-900/80 text-white hover:bg-olive-900 transition">
-                        <i class="ph-bold ph-x text-base"></i>
+                <!-- Кнопки ручного добавления КБЖУ и сброса дня -->
+                <div class="flex gap-2">
+                    <button onclick="openQuickMacroModal()"
+                        class="flex-1 py-2.5 px-3 rounded-xl bg-olive-700 hover:bg-olive-800 text-cream-50 font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition">
+                        <i class="ph-bold ph-fork-knife text-base"></i> Записать съеденное (по граммам)
+                    </button>
+                    <button onclick="resetTodayMacros()" title="Сбросить счётчик за сегодня"
+                        class="px-3 py-2.5 rounded-xl bg-cream-200/80 hover:bg-terracotta-500/15 text-olive-800 hover:text-terracotta-700 font-semibold text-xs transition">
+                        Сброс дня
                     </button>
                 </div>
 
-                <!-- Разделитель -->
-                <div class="flex items-center gap-3 text-xs text-olive-600/70 font-medium">
-                    <div class="h-px bg-cream-300 flex-1"></div>
-                    <span>ИЛИ ВСТАВЬТЕ ТЕКСТ ЧЕКА</span>
-                    <div class="h-px bg-cream-300 flex-1"></div>
-                </div>
-
-                <!-- Поле для текста чека -->
-                <textarea id="receiptTextInput" rows="4"
-                    placeholder="Вставьте скопированный текст из заказа или электронного чека...&#10;Например:&#10;Куриное бедро 800г — 340 руб&#10;Шампунь 400мл — 290 руб&#10;Яйца С1 10шт — 135 руб"
-                    class="w-full p-3.5 rounded-2xl bg-white border border-cream-300 text-sm text-olive-900 placeholder-olive-600/40 focus:outline-none focus:border-olive-600"></textarea>
-
-                <button onclick="analyzeReceiptWithAI()" id="scanBtn"
-                    class="w-full py-3.5 px-4 rounded-2xl bg-olive-700 hover:bg-olive-800 text-cream-50 font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.98]">
-                    <i class="ph-bold ph-sparkle text-lg"></i> Распознать чек и пополнить дом
-                </button>
-            </div>
-
-            <!-- Блок предпросмотра распознанного чека перед сохранением -->
-            <div id="parsedResultBox" class="hidden bg-cream-50 border-2 border-olive-600 rounded-3xl p-4 shadow-md space-y-3">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <span class="text-[11px] font-bold uppercase tracking-wider text-olive-700">Проверьте распознанное</span>
-                        <h3 class="font-bold text-base text-olive-900" id="parsedStoreName">Чек из магазина</h3>
+                <!-- История съеденного за сегодня -->
+                <div id="todayFoodLogWrap" class="hidden pt-2 border-t border-cream-200 space-y-1.5">
+                    <div class="flex items-center justify-between text-[11px] font-bold text-olive-700/80">
+                        <span>Съедено сегодня (нажмите ✕ чтобы отменить):</span>
                     </div>
-                    <div class="text-right">
-                        <span class="text-xs text-olive-700/70 block">Итого по чеку</span>
-                        <span class="font-extrabold text-lg text-terracotta-600" id="parsedTotalSum">0 ₽</span>
-                    </div>
-                </div>
-
-                <div id="parsedItemsList" class="space-y-2 max-h-72 overflow-y-auto pr-1"></div>
-
-                <div class="flex gap-2 pt-1">
-                    <button onclick="cancelParsedReceipt()"
-                        class="flex-1 py-3 rounded-2xl bg-cream-200 text-olive-900 font-semibold text-sm">
-                        Отмена
-                    </button>
-                    <button onclick="applyParsedReceipt()"
-                        class="flex-[2] py-3 rounded-2xl bg-terracotta-500 hover:bg-terracotta-600 text-white font-bold text-sm shadow-sm flex items-center justify-center gap-1.5">
-                        <i class="ph-bold ph-check-circle text-lg"></i> Зачислить в дом и расходы
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <!-- ==========================================
-             ВКЛАДКА 3: СПИСОК ПОКУПОК
-             ========================================== -->
-        <section id="tab-shopping" class="hidden space-y-4">
-            <div class="bg-cream-50 border border-cream-200 rounded-3xl p-4 shadow-xs">
-                <div class="flex items-start justify-between gap-3 mb-3">
-                    <div>
-                        <h2 class="font-bold text-lg text-olive-900">Авто-список покупок</h2>
-                        <p class="text-xs text-olive-700/80 mt-0.5">Сюда попадает всё, что упало до минимума (еда, гигиена, быт)</p>
-                    </div>
-                    <span id="shoppingTotalCount" class="px-3 py-1 rounded-full bg-terracotta-500/15 text-terracotta-700 font-bold text-sm shrink-0">
-                        0 поз.
-                    </span>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <button onclick="copyShoppingList()"
-                        class="w-full py-3 px-4 rounded-2xl bg-olive-700 hover:bg-olive-800 text-cream-50 font-semibold text-sm flex items-center justify-center gap-2 shadow-xs transition active:scale-95">
-                        <i class="ph-bold ph-copy text-lg"></i> Скопировать список
-                    </button>
-                    <button onclick="buyAllCheckedOrAll()" id="buyAllBtn"
-                        class="w-full py-3 px-4 rounded-2xl bg-terracotta-500 hover:bg-terracotta-600 text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-xs transition active:scale-95">
-                        <i class="ph-bold ph-check-circle text-lg"></i> Всё куплено → в запасы
-                    </button>
+                    <div id="todayFoodLogList" class="space-y-1 max-h-36 overflow-y-auto pr-1"></div>
                 </div>
             </div>
 
-            <div id="shoppingList" class="space-y-2.5"></div>
-        </section>
-
-        <!-- ==========================================
-             ВКЛАДКА 4: ГОТОВКА ПО МЕНЮ
-             ========================================== -->
-        <section id="tab-menu" class="hidden space-y-4">
-            <div class="bg-cream-50 border border-cream-200 rounded-3xl p-4 shadow-xs">
-                <h2 class="font-bold text-lg text-olive-900">Готовка по меню</h2>
-                <p class="text-xs text-olive-700/80 mt-1">
-                    Нажмите <b>«Приготовил блюдо»</b> — приложение само вычтет нужные граммы продуктов из запасов.
-                </p>
+            <div class="px-1">
+                <h3 class="font-bold text-sm text-olive-900">Блюда из меню (списание продуктов + учёт порции)</h3>
             </div>
 
             <div id="recipesList" class="space-y-3"></div>
@@ -268,178 +38,44 @@
         <!-- ==========================================
              ВКЛАДКА 5: БАНКОВСКАЯ АНАЛИТИКА РАСХОДОВ
              ========================================== -->
-        <section id="tab-expenses" class="hidden space-y-4">
-            <!-- Переключатель месяца и кнопка быстрой траты -->
-            <div class="flex items-center justify-between gap-2 bg-cream-50 border border-cream-200 rounded-3xl p-3 shadow-xs">
-                <div class="flex items-center gap-1">
-                    <button onclick="changeExpenseMonth(-1)" class="p-2 rounded-xl hover:bg-cream-200 text-olive-800">
-                        <i class="ph-bold ph-caret-left text-lg"></i>
-                    </button>
-                    <span id="currentMonthLabel" class="font-bold text-sm text-olive-900 min-w-[125px] text-center capitalize">
-                        Ноябрь 2026
-                    </span>
-                    <button onclick="changeExpenseMonth(1)" class="p-2 rounded-xl hover:bg-cream-200 text-olive-800">
-                        <i class="ph-bold ph-caret-right text-lg"></i>
-                    </button>
-                </div>
-
-                <button onclick="openExpenseModal()"
-                    class="px-3.5 py-2.5 rounded-2xl bg-terracotta-500 hover:bg-terracotta-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition active:scale-95">
-                    <i class="ph-bold ph-plus text-base"></i> Трата
-                </button>
-            </div>
-
-            <!-- Карточка с кольцевой диаграммой (как в банке) -->
-            <div class="bg-cream-50 border border-cream-200 rounded-3xl p-4 shadow-xs space-y-4">
-                <div class="flex items-center justify-between">
-                    <h2 class="font-bold text-base text-olive-900">Расходы за месяц</h2>
-                    <span class="text-xs text-olive-700/70" id="expenseOpsCount">0 операций</span>
-                </div>
-
-                <div class="flex flex-col sm:flex-row items-center gap-5">
-                    <!-- SVG Donut Chart -->
-                    <div class="relative w-44 h-44 shrink-0 flex items-center justify-center">
-                        <svg viewBox="0 0 120 120" class="w-full h-full -rotate-90" id="donutChartSvg">
-                            <circle cx="60" cy="60" r="46" fill="none" stroke="#ECE4D3" stroke-width="16"></circle>
-                        </svg>
-                        <div class="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none px-4">
-                            <span class="text-[11px] font-medium text-olive-700/70">Всего</span>
-                            <span class="font-extrabold text-lg text-olive-900 leading-tight" id="donutTotalAmount">0 ₽</span>
-                        </div>
-                    </div>
-
-                    <!-- Легенда по категориям -->
-                    <div class="w-full space-y-2" id="categoryLegend"></div>
-                </div>
-            </div>
-
-            <!-- График расходов по дням месяца -->
-            <div class="bg-cream-50 border border-cream-200 rounded-3xl p-4 shadow-xs space-y-3">
-                <div class="flex items-center justify-between">
-                    <h3 class="font-bold text-sm text-olive-900">Траты по дням</h3>
-                    <span class="text-[11px] text-olive-700/70" id="maxDayLabel">Макс: 0 ₽</span>
-                </div>
-                <div class="h-28 flex items-end gap-1 pt-4 border-b border-cream-200 overflow-x-auto no-scrollbar" id="dailyBarsContainer"></div>
-                <div class="flex justify-between text-[10px] text-olive-700/60 font-medium px-0.5">
-                    <span>1 число</span>
-                    <span>15 число</span>
-                    <span>Конец месяца</span>
-                </div>
-            </div>
-
-            <!-- История операций -->
-            <div class="space-y-2.5">
-                <h3 class="font-bold text-sm text-olive-900 px-1">История покупок и чеков</h3>
-                <div id="transactionsList" class="space-y-2"></div>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- Нижняя навигационная панель (5 вкладок) -->
-    <nav class="fixed bottom-0 inset-x-0 z-30 bg-cream-50/95 backdrop-blur-md border-t border-cream-200 px-2 py-1.5 shadow-lg">
-        <div class="max-w-xl mx-auto grid grid-cols-5 gap-1">
-            <button onclick="switchTab('inventory')" id="nav-inventory"
-                class="nav-btn flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl bg-olive-700 text-cream-50 transition">
-                <i class="ph-fill ph-package text-xl"></i>
-                <span class="text-[10px] font-semibold mt-0.5">Запасы</span>
-            </button>
-
-            <button onclick="switchTab('scanner')" id="nav-scanner"
-                class="nav-btn flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl text-olive-800 hover:bg-cream-200/60 transition">
-                <i class="ph-fill ph-scan text-xl"></i>
-                <span class="text-[10px] font-semibold mt-0.5">Чек +</span>
-            </button>
-
-            <button onclick="switchTab('shopping')" id="nav-shopping"
-                class="nav-btn relative flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl text-olive-800 hover:bg-cream-200/60 transition">
-                <span id="navBadge" class="hidden absolute top-1 right-2.5 min-w-[18px] h-[18px] px-1 rounded-full bg-terracotta-500 text-white text-[10px] font-bold flex items-center justify-center shadow">
-                    0
-                </span>
-                <i class="ph-fill ph-shopping-cart text-xl"></i>
-                <span class="text-[10px] font-semibold mt-0.5">Купить</span>
-            </button>
-
-            <button onclick="switchTab('menu')" id="nav-menu"
-                class="nav-btn flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl text-olive-800 hover:bg-cream-200/60 transition">
-                <i class="ph-fill ph-fork-knife text-xl"></i>
-                <span class="text-[10px] font-semibold mt-0.5">Меню</span>
-            </button>
-
-            <button onclick="switchTab('expenses')" id="nav-expenses"
-                class="nav-btn flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl text-olive-800 hover:bg-cream-200/60 transition">
-                <i class="ph-fill ph-chart-donut text-xl"></i>
-                <span class="text-[10px] font-semibold mt-0.5">Расходы</span>
-            </button>
-        </div>
-    </nav>
-
-    <!-- Всплывающее уведомление (Toast) -->
-    <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-all duration-300 transform -translate-y-2 w-[90%] max-w-sm">
-        <div class="bg-olive-900 text-cream-50 px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 border border-olive-700">
-            <i class="ph-fill ph-check-circle text-terracotta-500 text-xl shrink-0" id="toastIcon"></i>
-            <span class="text-sm font-medium leading-snug" id="toastMessage">Готово!</span>
-        </div>
-    </div>
-
-    <!-- Модальное окно: Добавить новый товар/продукт вручную -->
-    <div id="addModal" class="hidden fixed inset-0 z-50 bg-olive-900/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-4">
-        <div class="bg-cream-50 w-full max-w-md rounded-3xl p-5 shadow-2xl border border-cream-200 space-y-4">
-            <div class="flex items-center justify-between">
-                <h3 class="font-bold text-lg text-olive-900">Добавить в запасы дома</h3>
-                <button onclick="closeAddModal()" class="p-2 rounded-xl bg-cream-100 text-olive-800">
-                    <i class="ph-bold ph-x text-lg"></i>
-                </button>
-            </div>
-
-            <div class="space-y-3">
-                <div>
-                    <label class="block text-xs font-semibold text-olive-800 mb-1">Название</label>
-                    <input type="text" id="newProdName" placeholder="Например: Гель для душа или Сыр"
-                        class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-cream-300 text-sm focus:outline-none focus:border-olive-600">
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-olive-800 mb-1">Категория</label>
-                        <select id="newProdCat" class="w-full px-3 py-2.5 rounded-xl bg-white border border-cream-300 text-sm focus:outline-none focus:border-olive-600">
-                            <option value="Мясо и полуфабрикаты">Мясо и полуфабрикаты</option>
-                            <option value="Молочка и яйца">Молочка и яйца</option>
-                            <option value="Овощи и фрукты">Овощи и фрукты</option>
-                            <option value="Крупы и бакалея">Крупы и бакалея</option>
-                            <option value="Хлеб и разное">Хлеб и разное</option>
-                            <option value="Гигиена и уход">Гигиена и уход</option>
-                            <option value="Быт и стирка">Быт и стирка</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-olive-800 mb-1">Единица изм.</label>
-                        <select id="newProdUnit" class="w-full px-3 py-2.5 rounded-xl bg-white border border-cream-300 text-sm focus:outline-none focus:border-olive-600">
-                            <option value="г">г (граммы)</option>
-                            <option value="шт">шт (штуки)</option>
-                            <option value="мл">мл (миллилитры)</option>
-                            <option value="уп">уп (упаковки)</option>
-                            <option value="банка">банка</option>
-                            <option value="рул">рул (рулоны)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-3 gap-2.5">
-                    <div>
-                        <label class="block text-xs font-semibold text-olive-800 mb-1">Сейчас есть</label>
-                        <input type="number" id="newProdQty" value="500" min="0"
-                            class="w-full px-3 py-2.5 rounded-xl bg-white border border-cream-300 text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-olive-800 mb-1">Порог мин.</label>
-                        <input type="number" id="newProdMin" value="150" min="0"
-                            class="w-full px-3 py-2.5 rounded-xl bg-white border border-cream-300 text-sm">
-                    </div>
+<!-- ... existing code ... -->
                     <div>
                         <label class="block text-xs font-semibold text-olive-800 mb-1">Докупить</label>
                         <input type="number" id="newProdBuy" value="500" min="1"
                             class="w-full px-3 py-2.5 rounded-xl bg-white border border-cream-300 text-sm">
+                    </div>
+                </div>
+
+                <!-- Блок КБЖУ с упаковки производителя -->
+                <div class="bg-white border border-cream-300 rounded-2xl p-3 space-y-2.5">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs font-bold text-olive-900" id="newProdMacroLabel">КБЖУ на 100 г / 100 мл / 1 шт:</span>
+                        <button type="button" onclick="autoFillProductMacros()" id="autoMacroBtn"
+                            class="px-2.5 py-1 rounded-lg bg-olive-700/10 hover:bg-olive-700/20 text-olive-900 font-bold text-[11px] flex items-center gap-1 transition">
+                            <i class="ph-bold ph-sparkle"></i> Найти по названию
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-4 gap-2">
+                        <div>
+                            <label class="block text-[10px] font-semibold text-olive-700 mb-0.5">Ккал</label>
+                            <input type="number" id="newProdKcal" placeholder="0" min="0" step="0.1"
+                                class="w-full px-2 py-2 rounded-lg bg-cream-50 border border-cream-300 text-xs font-bold">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-olive-700 mb-0.5">Белки</label>
+                            <input type="number" id="newProdProt" placeholder="0" min="0" step="0.1"
+                                class="w-full px-2 py-2 rounded-lg bg-cream-50 border border-cream-300 text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-olive-700 mb-0.5">Жиры</label>
+                            <input type="number" id="newProdFat" placeholder="0" min="0" step="0.1"
+                                class="w-full px-2 py-2 rounded-lg bg-cream-50 border border-cream-300 text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-olive-700 mb-0.5">Углев.</label>
+                            <input type="number" id="newProdCarb" placeholder="0" min="0" step="0.1"
+                                class="w-full px-2 py-2 rounded-lg bg-cream-50 border border-cream-300 text-xs">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -455,348 +91,221 @@
         </div>
     </div>
 
-    <!-- Модальное окно: Добавить расход вручную -->
-    <div id="expenseModal" class="hidden fixed inset-0 z-50 bg-olive-900/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-4">
-        <div class="bg-cream-50 w-full max-w-md rounded-3xl p-5 shadow-2xl border border-cream-200 space-y-4">
+    <!-- Модальное окно: Настройка параметров тела для расчёта КБЖУ -->
+<!-- ... existing code ... -->
+    <!-- Модальное окно: Быстрая запись перекуса / КБЖУ по базе или вручную -->
+    <div id="quickMacroModal" class="hidden fixed inset-0 z-50 bg-olive-900/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-4">
+        <div class="bg-cream-50 w-full max-w-md rounded-3xl p-5 shadow-2xl border border-cream-200 space-y-4 max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between">
-                <h3 class="font-bold text-lg text-olive-900">Записать расход</h3>
-                <button onclick="closeExpenseModal()" class="p-2 rounded-xl bg-cream-100 text-olive-800">
+                <h3 class="font-bold text-lg text-olive-900">Записать съеденное</h3>
+                <button onclick="closeQuickMacroModal()" class="p-2 rounded-xl bg-cream-100 text-olive-800">
                     <i class="ph-bold ph-x text-lg"></i>
                 </button>
             </div>
 
-            <div class="space-y-3">
-                <div>
-                    <label class="block text-xs font-semibold text-olive-800 mb-1">Сумма (₽)</label>
-                    <input type="number" id="expAmount" placeholder="Например: 1250" min="1"
-                        class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-cream-300 text-base font-bold focus:outline-none focus:border-olive-600">
-                </div>
+            <!-- Переключатель: Из базы продуктов / Вручную с этикетки -->
+            <div class="grid grid-cols-2 gap-1.5 bg-cream-200/80 p-1 rounded-2xl">
+                <button type="button" onclick="switchFoodEntryMode('db')" id="foodModeBtn-db"
+                    class="py-2 px-3 rounded-xl text-xs font-bold bg-olive-700 text-cream-50 shadow-2xs transition">
+                    Из базы / запасов
+                </button>
+                <button type="button" onclick="switchFoodEntryMode('manual')" id="foodModeBtn-manual"
+                    class="py-2 px-3 rounded-xl text-xs font-bold text-olive-800 transition">
+                    Вручную (с упаковки)
+                </button>
+            </div>
 
+            <!-- Режим 1: Выбор из базы и авторасчёт по граммам -->
+            <div id="foodModeBox-db" class="space-y-3">
                 <div>
-                    <label class="block text-xs font-semibold text-olive-800 mb-1">Категория</label>
-                    <select id="expCategory" class="w-full px-3 py-2.5 rounded-xl bg-white border border-cream-300 text-sm focus:outline-none focus:border-olive-600">
-                        <option value="Еда и продукты">Еда и продукты</option>
-                        <option value="Гигиена и уход">Гигиена и уход</option>
-                        <option value="Быт и стирка">Быт и стирка</option>
-                        <option value="Доставка и такси">Доставка и такси</option>
-                        <option value="Прочее">Прочее</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-olive-800 mb-1">Название / комментарий</label>
-                    <input type="text" id="expTitle" placeholder="Например: Яндекс Лавка или Курьер"
+                    <label class="block text-xs font-semibold text-olive-800 mb-1">Поиск по базе продуктов и запасов</label>
+                    <input type="text" id="foodDbSearch" oninput="filterFoodDbList()" placeholder="Например: творог, курица, овсянка, яйцо..."
                         class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-cream-300 text-sm focus:outline-none focus:border-olive-600">
                 </div>
 
+                <div id="foodDbResults" class="max-h-40 overflow-y-auto space-y-1.5 pr-1"></div>
+
+                <div id="selectedDbFoodCard" class="hidden bg-white border-2 border-olive-600/40 rounded-2xl p-3 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="font-bold text-sm text-olive-900" id="selDbFoodName">—</div>
+                            <div class="text-[11px] text-olive-700/70" id="selDbFoodBaseInfo">На 100 г: 0 ккал</div>
+                        </div>
+                        <span class="text-xs font-bold px-2 py-1 rounded-lg bg-cream-200 text-olive-800" id="selDbFoodStock">Дома: 0 г</span>
+                    </div>
+
+                    <div class="flex items-center gap-2.5">
+                        <div class="flex-1">
+                            <label class="block text-[11px] font-semibold text-olive-800 mb-1" id="selDbAmountLabel">Сколько съели (г):</label>
+                            <input type="number" id="selDbAmount" value="100" min="1" step="1" oninput="recalcSelectedDbFood()"
+                                class="w-full px-3 py-2 rounded-xl bg-cream-50 border border-cream-300 text-sm font-extrabold text-olive-900">
+                        </div>
+                        <div class="flex-1 bg-cream-100 rounded-xl p-2 text-center">
+                            <div class="text-[10px] font-semibold text-olive-700">Итого в порции:</div>
+                            <div class="font-extrabold text-sm text-olive-900" id="selDbCalcKcal">0 ккал</div>
+                            <div class="text-[10px] font-semibold text-olive-800" id="selDbCalcBju">Б: 0 • Ж: 0 • У: 0</div>
+                        </div>
+                    </div>
+
+                    <label class="flex items-center gap-2 text-xs font-semibold text-olive-800 cursor-pointer pt-1">
+                        <input type="checkbox" id="selDbDeductStock" checked class="w-4 h-4 accent-olive-700 rounded">
+                        <span>Автоматически списать это количество из запасов дома</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Режим 2: Ручной ввод данных с упаковки -->
+            <div id="foodModeBox-manual" class="hidden space-y-3">
                 <div>
-                    <label class="block text-xs font-semibold text-olive-800 mb-1">Дата</label>
-                    <input type="date" id="expDate"
-                        class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-cream-300 text-sm focus:outline-none focus:border-olive-600">
+                    <label class="block text-xs font-semibold text-olive-800 mb-1">Название продукта / блюда</label>
+                    <input type="text" id="qmName" placeholder="Например: Протеиновый батончик"
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-cream-300 text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div>
+                        <label class="block text-xs font-semibold text-olive-800 mb-1">Калории (ккал)</label>
+                        <input type="number" id="qmKcal" placeholder="210" min="0" step="0.1"
+                            class="w-full px-3 py-2.5 rounded-xl bg-white border border-cream-300 text-sm font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-olive-800 mb-1">Белки (г)</label>
+                        <input type="number" id="qmProt" placeholder="18" min="0" step="0.1"
+                            class="w-full px-3 py-2.5 rounded-xl bg-white border border-cream-300 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-olive-800 mb-1">Жиры (г)</label>
+                        <input type="number" id="qmFat" placeholder="7" min="0" step="0.1"
+                            class="w-full px-3 py-2.5 rounded-xl bg-white border border-cream-300 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-olive-800 mb-1">Углеводы (г)</label>
+                        <input type="number" id="qmCarb" placeholder="16" min="0" step="0.1"
+                            class="w-full px-3 py-2.5 rounded-xl bg-white border border-cream-300 text-sm">
+                    </div>
                 </div>
             </div>
 
             <div class="flex gap-2 pt-2">
-                <button onclick="closeExpenseModal()" class="flex-1 py-3 rounded-2xl bg-cream-200 text-olive-900 font-semibold text-sm">
+                <button onclick="closeQuickMacroModal()" class="flex-1 py-3 rounded-2xl bg-cream-200 text-olive-900 font-semibold text-sm">
                     Отмена
                 </button>
-                <button onclick="saveManualExpense()" class="flex-1 py-3 rounded-2xl bg-terracotta-500 text-white font-semibold text-sm shadow">
-                    Добавить трату
+                <button onclick="saveQuickMacro()" class="flex-1 py-3 rounded-2xl bg-terracotta-500 text-white font-semibold text-sm shadow">
+                    Добавить в день
                 </button>
             </div>
         </div>
     </div>
-
-    <!-- Модальное окно: Сброс -->
-    <div id="resetModal" class="hidden fixed inset-0 z-50 bg-olive-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-        <div class="bg-cream-50 w-full max-w-sm rounded-3xl p-5 shadow-2xl border border-cream-200 space-y-4">
-            <h3 class="font-bold text-lg text-olive-900">Сбросить запасы к базовым?</h3>
-            <p class="text-sm text-olive-800/80">
-                Остатки еды, гигиены и быта вернутся к стартовому набору. История ваших расходов сохранится.
-            </p>
-            <div class="flex gap-2">
-                <button onclick="closeResetModal()" class="flex-1 py-3 rounded-2xl bg-cream-200 text-olive-900 font-semibold text-sm">
-                    Отмена
-                </button>
-                <button onclick="confirmReset()" class="flex-1 py-3 rounded-2xl bg-terracotta-500 text-white font-semibold text-sm shadow">
-                    Сбросить
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Модальное окно: Настройки, API-ключ и резервная копия -->
-    <div id="settingsModal" class="hidden fixed inset-0 z-50 bg-olive-900/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-4">
-        <div class="bg-cream-50 w-full max-w-md rounded-3xl p-5 shadow-2xl border border-cream-200 space-y-4">
-            <div class="flex items-center justify-between">
-                <h3 class="font-bold text-lg text-olive-900">Настройки и память</h3>
-                <button onclick="closeSettingsModal()" class="p-2 rounded-xl bg-cream-100 text-olive-800">
-                    <i class="ph-bold ph-x text-lg"></i>
-                </button>
-            </div>
-
-            <div class="space-y-3">
-                <div class="bg-white border border-cream-300 rounded-2xl p-3.5 space-y-2">
-                    <label class="block text-xs font-bold text-olive-900">API-ключ Google AI (для сканера чеков)</label>
-                    <p class="text-[11px] text-olive-700/80 leading-relaxed">
-                        Нужен, чтобы сканер чеков работал на вашем сайте GitHub Pages. Бесплатный ключ можно получить на <b>aistudio.google.com</b>.
-                    </p>
-                    <input type="password" id="geminiApiKeyInput" placeholder="Вставьте ключ AIzaSy..."
-                        class="w-full px-3 py-2 rounded-xl bg-cream-50 border border-cream-300 text-xs focus:outline-none focus:border-olive-600">
-                    <button onclick="saveApiKey()" class="w-full py-2.5 rounded-xl bg-olive-700 text-cream-50 font-semibold text-xs">
-                        Сохранить ключ
-                    </button>
-                </div>
-
-                <div class="bg-white border border-cream-300 rounded-2xl p-3.5 space-y-2.5">
-                    <div class="text-xs font-bold text-olive-900">Резервная копия данных</div>
-                    <p class="text-[11px] text-olive-700/80 leading-relaxed">
-                        Данные хранятся в памяти вашего iPhone. Сохраните файл копии, чтобы не потерять запасы и расходы при смене телефона или очистке браузера.
-                    </p>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="exportBackupData()"
-                            class="py-2.5 px-3 rounded-xl bg-cream-200 hover:bg-cream-300 text-olive-900 font-semibold text-xs flex items-center justify-center gap-1.5">
-                            <i class="ph-bold ph-download-simple text-base"></i> Скачать копию
-                        </button>
-                        <label for="importBackupInput"
-                            class="py-2.5 px-3 rounded-xl bg-cream-200 hover:bg-cream-300 text-olive-900 font-semibold text-xs flex items-center justify-center gap-1.5 cursor-pointer">
-                            <i class="ph-bold ph-upload-simple text-base"></i> Загрузить
-                        </label>
-                        <input type="file" id="importBackupInput" accept=".json" class="hidden" onchange="importBackupData(event)">
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <textarea id="clipboardHelper" class="sr-only" aria-hidden="true"></textarea>
-
+<!-- ... existing code ... -->
     <script>
         // ==========================================
-        // 1. БАЗОВЫЕ ДАННЫЕ (ЕДА + ГИГИЕНА + БЫТ)
+        // 1. БАЗОВЫЕ ДАННЫЕ (ПРОДУКТЫ, ЧЕСТНОЕ КБЖУ, ГИГИЕНА, БЫТ, МЕНЮ)
         // ==========================================
         const INITIAL_PRODUCTS = [
-            // Мясо и полуфабрикаты
-            { id: 'chicken_legs', name: 'Куриные голени / бедра', category: 'Мясо и полуфабрикаты', qty: 800, min: 300, step: 200, buyQty: 800, unit: 'г' },
-            { id: 'minced_meat', name: 'Фарш (куриный или домашний)', category: 'Мясо и полуфабрикаты', qty: 1000, min: 400, step: 250, buyQty: 1000, unit: 'г' },
-            { id: 'turkey_fillet', name: 'Филе индейки (гуляш)', category: 'Мясо и полуфабрикаты', qty: 500, min: 200, step: 250, buyQty: 500, unit: 'г' },
-            { id: 'pork_meat', name: 'Мясо для жаркого (свинина/курица)', category: 'Мясо и полуфабрикаты', qty: 600, min: 200, step: 200, buyQty: 600, unit: 'г' },
-            { id: 'sausages', name: 'Сосиски / охотничьи колбаски', category: 'Мясо и полуфабрикаты', qty: 400, min: 150, step: 100, buyQty: 400, unit: 'г' },
-            { id: 'ham', name: 'Ветчина или колбаса для бутербродов', category: 'Мясо и полуфабрикаты', qty: 300, min: 100, step: 100, buyQty: 300, unit: 'г' },
-            { id: 'pelmeni', name: 'Пельмени замороженные', category: 'Мясо и полуфабрикаты', qty: 800, min: 300, step: 400, buyQty: 800, unit: 'г' },
-            { id: 'syrniki', name: 'Сырники замороженные', category: 'Мясо и полуфабрикаты', qty: 400, min: 150, step: 200, buyQty: 400, unit: 'г' },
+            // Еда (macrosPer100: на 100 г или 100 мл; для 'шт' и 'банка' — на 1 единицу)
+            { id: 'chicken_legs', name: 'Куриные голени / бедра (без кожи)', category: 'Мясо и полуфабрикаты', qty: 800, min: 300, step: 200, unit: 'г', buyQty: 1000, macros: { kcal: 158, p: 19.5, f: 8.8, c: 0 } },
+            { id: 'minced_meat', name: 'Фарш куриный / домашний', category: 'Мясо и полуфабрикаты', qty: 1000, min: 300, step: 250, unit: 'г', buyQty: 1000, macros: { kcal: 192, p: 17.5, f: 13.5, c: 0 } },
+            { id: 'turkey_fillet', name: 'Филе индейки (грудка)', category: 'Мясо и полуфабрикаты', qty: 600, min: 250, step: 200, unit: 'г', buyQty: 800, macros: { kcal: 113, p: 23.6, f: 1.8, c: 0 } },
+            { id: 'pork_meat', name: 'Свинина (окорок / лопатка)', category: 'Мясо и полуфабрикаты', qty: 600, min: 250, step: 200, unit: 'г', buyQty: 800, macros: { kcal: 242, p: 16.4, f: 19.5, c: 0 } },
+            { id: 'sausages', name: 'Сосиски молочные / колбаски', category: 'Мясо и полуфабрикаты', qty: 400, min: 150, step: 100, unit: 'г', buyQty: 400, macros: { kcal: 266, p: 11.0, f: 23.5, c: 1.8 } },
+            { id: 'ham', name: 'Ветчина из индейки / курицы', category: 'Мясо и полуфабрикаты', qty: 300, min: 100, step: 50, unit: 'г', buyQty: 300, macros: { kcal: 125, p: 14.5, f: 6.5, c: 2.0 } },
+            { id: 'pelmeni', name: 'Пельмени классические', category: 'Мясо и полуфабрикаты', qty: 800, min: 300, step: 200, unit: 'г', buyQty: 800, macros: { kcal: 275, p: 11.8, f: 13.2, c: 27.0 } },
 
-            // Молочка и яйца
-            { id: 'eggs', name: 'Яйца куриные', category: 'Молочка и яйца', qty: 15, min: 4, step: 1, buyQty: 10, unit: 'шт' },
-            { id: 'milk', name: 'Молоко', category: 'Молочка и яйца', qty: 1000, min: 250, step: 250, buyQty: 1000, unit: 'мл' },
-            { id: 'cottage_cheese', name: 'Творог (5–9%)', category: 'Молочка и яйца', qty: 600, min: 200, step: 200, buyQty: 600, unit: 'г' },
-            { id: 'sour_cream', name: 'Сметана', category: 'Молочка и яйца', qty: 350, min: 100, step: 50, buyQty: 350, unit: 'г' },
-            { id: 'cheese', name: 'Твердый сыр', category: 'Молочка и яйца', qty: 300, min: 100, step: 50, buyQty: 300, unit: 'г' },
-            { id: 'butter', name: 'Сливочное масло', category: 'Молочка и яйца', qty: 180, min: 50, step: 30, buyQty: 180, unit: 'г' },
-            { id: 'kefir', name: 'Кефир или ряженка', category: 'Молочка и яйца', qty: 1000, min: 300, step: 250, buyQty: 1000, unit: 'мл' },
+            { id: 'eggs', name: 'Яйца куриные С1 (1 шт ~55 г)', category: 'Молочка и яйца', qty: 10, min: 4, step: 1, unit: 'шт', buyQty: 10, macros: { kcal: 82, p: 6.8, f: 5.9, c: 0.4 } },
+            { id: 'milk', name: 'Молоко 2.5–3.2%', category: 'Молочка и яйца', qty: 1000, min: 300, step: 250, unit: 'мл', buyQty: 1000, macros: { kcal: 54, p: 2.9, f: 2.5, c: 4.7 } },
+            { id: 'cottage_cheese', name: 'Творог 5%', category: 'Молочка и яйца', qty: 600, min: 200, step: 200, unit: 'г', buyQty: 600, macros: { kcal: 121, p: 17.2, f: 5.0, c: 1.8 } },
+            { id: 'sour_cream', name: 'Сметана 15%', category: 'Молочка и яйца', qty: 300, min: 100, step: 50, unit: 'г', buyQty: 300, macros: { kcal: 162, p: 2.6, f: 15.0, c: 3.6 } },
+            { id: 'butter', name: 'Масло сливочное 82.5%', category: 'Молочка и яйца', qty: 180, min: 50, step: 20, unit: 'г', buyQty: 180, macros: { kcal: 748, p: 0.5, f: 82.5, c: 0.8 } },
+            { id: 'cheese', name: 'Сыр полутвёрдый (Российский/Гауда)', category: 'Молочка и яйца', qty: 250, min: 80, step: 50, unit: 'г', buyQty: 300, macros: { kcal: 356, p: 23.2, f: 29.0, c: 0 } },
+            { id: 'ryazhenka', name: 'Кефир / Ряженка 2.5%', category: 'Молочка и яйца', qty: 500, min: 200, step: 250, unit: 'мл', buyQty: 500, macros: { kcal: 54, p: 2.9, f: 2.5, c: 4.2 } },
 
-            // Овощи и фрукты
-            { id: 'potatoes', name: 'Картофель', category: 'Овощи и фрукты', qty: 2000, min: 600, step: 300, buyQty: 2000, unit: 'г' },
-            { id: 'carrot', name: 'Морковь', category: 'Овощи и фрукты', qty: 400, min: 150, step: 100, buyQty: 500, unit: 'г' },
-            { id: 'onion', name: 'Лук репчатый', category: 'Овощи и фрукты', qty: 400, min: 150, step: 100, buyQty: 500, unit: 'г' },
-            { id: 'cucumbers', name: 'Огурцы свежие', category: 'Овощи и фрукты', qty: 400, min: 150, step: 100, buyQty: 400, unit: 'г' },
-            { id: 'cherry_tomatoes', name: 'Помидоры черри / обычные', category: 'Овощи и фрукты', qty: 400, min: 150, step: 100, buyQty: 400, unit: 'г' },
-            { id: 'bananas', name: 'Бананы', category: 'Овощи и фрукты', qty: 4, min: 1, step: 1, buyQty: 4, unit: 'шт' },
+            { id: 'potatoes', name: 'Картофель', category: 'Овощи и фрукты', qty: 2000, min: 600, step: 300, unit: 'г', buyQty: 2000, macros: { kcal: 77, p: 2.0, f: 0.4, c: 16.3 } },
+            { id: 'carrot', name: 'Морковь', category: 'Овощи и фрукты', qty: 500, min: 150, step: 100, unit: 'г', buyQty: 500, macros: { kcal: 35, p: 1.3, f: 0.1, c: 6.9 } },
+            { id: 'onion', name: 'Лук репчатый', category: 'Овощи и фрукты', qty: 500, min: 150, step: 100, unit: 'г', buyQty: 500, macros: { kcal: 41, p: 1.4, f: 0.2, c: 8.2 } },
+            { id: 'cucumbers', name: 'Огурцы свежие', category: 'Овощи и фрукты', qty: 400, min: 150, step: 100, unit: 'г', buyQty: 500, macros: { kcal: 15, p: 0.8, f: 0.1, c: 2.8 } },
+            { id: 'tomatoes', name: 'Помидоры / черри', category: 'Овощи и фрукты', qty: 400, min: 150, step: 100, unit: 'г', buyQty: 500, macros: { kcal: 20, p: 1.1, f: 0.2, c: 3.7 } },
+            { id: 'bananas', name: 'Бананы (1 шт ~120 г мякоти)', category: 'Овощи и фрукты', qty: 4, min: 1, step: 1, unit: 'шт', buyQty: 5, macros: { kcal: 115, p: 1.8, f: 0.6, c: 26.2 } },
 
-            // Крупы и бакалея
-            { id: 'oatmeal', name: 'Овсяные хлопья', category: 'Крупы и бакалея', qty: 500, min: 150, step: 100, buyQty: 500, unit: 'г' },
-            { id: 'buckwheat', name: 'Гречка', category: 'Крупы и бакалея', qty: 800, min: 200, step: 150, buyQty: 800, unit: 'г' },
-            { id: 'rice', name: 'Рис', category: 'Крупы и бакалея', qty: 800, min: 200, step: 150, buyQty: 800, unit: 'г' },
-            { id: 'pasta', name: 'Макароны (рожки/перья)', category: 'Крупы и бакалея', qty: 500, min: 200, step: 150, buyQty: 500, unit: 'г' },
-            { id: 'vermicelli', name: 'Вермишель-паутинка для супа', category: 'Крупы и бакалея', qty: 400, min: 100, step: 50, buyQty: 400, unit: 'г' },
-            { id: 'semolina', name: 'Манка (для запеканки)', category: 'Крупы и бакалея', qty: 500, min: 100, step: 50, buyQty: 500, unit: 'г' },
-            { id: 'flour', name: 'Мука пшеничная', category: 'Крупы и бакалея', qty: 1000, min: 200, step: 100, buyQty: 1000, unit: 'г' },
-            { id: 'sugar', name: 'Сахар', category: 'Крупы и бакалея', qty: 800, min: 200, step: 100, buyQty: 800, unit: 'г' },
-            { id: 'tomato_paste', name: 'Томатная паста или кетчуп', category: 'Крупы и бакалея', qty: 250, min: 50, step: 50, buyQty: 250, unit: 'г' },
-            { id: 'green_peas', name: 'Зеленый горошек (банка)', category: 'Крупы и бакалея', qty: 1, min: 0, step: 1, buyQty: 2, unit: 'банка' },
+            { id: 'oatmeal', name: 'Овсяные хлопья Геркулес (сухие)', category: 'Крупы и бакалея', qty: 500, min: 150, step: 100, unit: 'г', buyQty: 500, macros: { kcal: 352, p: 12.3, f: 6.2, c: 61.8 } },
+            { id: 'buckwheat', name: 'Гречка (сухая крупа)', category: 'Крупы и бакалея', qty: 800, min: 200, step: 100, unit: 'г', buyQty: 800, macros: { kcal: 335, p: 12.6, f: 3.3, c: 64.0 } },
+            { id: 'rice', name: 'Рис круглозёрный / длиннозёрный', category: 'Крупы и бакалея', qty: 800, min: 200, step: 100, unit: 'г', buyQty: 800, macros: { kcal: 344, p: 6.7, f: 0.7, c: 78.9 } },
+            { id: 'pasta', name: 'Макароны твёрдых сортов (сухие)', category: 'Крупы и бакалея', qty: 500, min: 200, step: 100, unit: 'г', buyQty: 500, macros: { kcal: 344, p: 10.4, f: 1.1, c: 71.5 } },
+            { id: 'vermicelli', name: 'Вермишель для супа', category: 'Крупы и бакалея', qty: 400, min: 100, step: 50, unit: 'г', buyQty: 400, macros: { kcal: 344, p: 10.4, f: 1.1, c: 71.5 } },
+            { id: 'semolina', name: 'Крупа манная', category: 'Крупы и бакалея', qty: 500, min: 100, step: 50, unit: 'г', buyQty: 500, macros: { kcal: 333, p: 10.3, f: 1.0, c: 70.6 } },
+            { id: 'flour', name: 'Мука пшеничная', category: 'Крупы и бакалея', qty: 1000, min: 200, step: 100, unit: 'г', buyQty: 1000, macros: { kcal: 334, p: 10.3, f: 1.1, c: 70.6 } },
+            { id: 'sugar', name: 'Сахар', category: 'Крупы и бакалея', qty: 1000, min: 200, step: 100, unit: 'г', buyQty: 1000, macros: { kcal: 398, p: 0, f: 0, c: 99.7 } },
+            { id: 'tomato_paste', name: 'Томатная паста', category: 'Крупы и бакалея', qty: 250, min: 70, step: 50, unit: 'г', buyQty: 250, macros: { kcal: 99, p: 4.8, f: 0.5, c: 19.0 } },
+            { id: 'green_peas', name: 'Зелёный горошек (1 банка 400 г)', category: 'Крупы и бакалея', qty: 2, min: 1, step: 1, unit: 'банка', buyQty: 2, macros: { kcal: 145, p: 8.6, f: 0.6, c: 25.5 } },
+            { id: 'pickles', name: 'Огурцы солёные / кваш. капуста', category: 'Крупы и бакалея', qty: 500, min: 150, step: 100, unit: 'г', buyQty: 500, macros: { kcal: 16, p: 1.2, f: 0.1, c: 2.5 } },
 
-            // Хлеб и разное
-            { id: 'bread', name: 'Хлеб / батон в нарезке', category: 'Хлеб и разное', qty: 1, min: 0, step: 1, buyQty: 1, unit: 'уп' },
-            { id: 'pickles', name: 'Квашеная капуста / соленые огурцы', category: 'Хлеб и разное', qty: 500, min: 150, step: 150, buyQty: 500, unit: 'г' },
-            { id: 'nuts_honey', name: 'Орехи и мед', category: 'Хлеб и разное', qty: 300, min: 100, step: 50, buyQty: 300, unit: 'г' },
+            { id: 'bread', name: 'Хлеб / батон нарезной', category: 'Хлеб и разное', qty: 400, min: 150, step: 100, unit: 'г', buyQty: 400, macros: { kcal: 255, p: 7.6, f: 2.9, c: 50.2 } },
+            { id: 'walnuts', name: 'Грецкие орехи', category: 'Хлеб и разное', qty: 200, min: 50, step: 30, unit: 'г', buyQty: 200, macros: { kcal: 654, p: 15.2, f: 65.2, c: 7.0 } },
+            { id: 'honey', name: 'Мёд натуральный', category: 'Хлеб и разное', qty: 250, min: 60, step: 30, unit: 'г', buyQty: 250, macros: { kcal: 328, p: 0.8, f: 0, c: 80.3 } },
 
             // Гигиена и уход
-            { id: 'shower_gel', name: 'Гель для душа', category: 'Гигиена и уход', qty: 400, min: 100, step: 100, buyQty: 400, unit: 'мл' },
-            { id: 'shampoo', name: 'Шампунь', category: 'Гигиена и уход', qty: 400, min: 100, step: 100, buyQty: 400, unit: 'мл' },
-            { id: 'toothpaste', name: 'Зубная паста', category: 'Гигиена и уход', qty: 100, min: 30, step: 25, buyQty: 100, unit: 'мл' },
-            { id: 'wet_wipes', name: 'Влажные салфетки', category: 'Гигиена и уход', qty: 2, min: 1, step: 1, buyQty: 2, unit: 'уп' },
-            { id: 'toilet_paper', name: 'Туалетная бумага', category: 'Гигиена и уход', qty: 6, min: 2, step: 1, buyQty: 8, unit: 'рул' },
-            { id: 'liquid_soap', name: 'Жидкое мыло', category: 'Гигиена и уход', qty: 300, min: 100, step: 100, buyQty: 500, unit: 'мл' },
+            { id: 'shower_gel', name: 'Гель для душа', category: 'Гигиена и уход', qty: 400, min: 100, step: 100, unit: 'мл', buyQty: 500 },
+            { id: 'shampoo', name: 'Шампунь', category: 'Гигиена и уход', qty: 400, min: 100, step: 100, unit: 'мл', buyQty: 400 },
+            { id: 'toothpaste', name: 'Зубная паста', category: 'Гигиена и уход', qty: 1, min: 1, step: 1, unit: 'шт', buyQty: 2 },
+            { id: 'wet_wipes', name: 'Влажные салфетки (большая уп.)', category: 'Гигиена и уход', qty: 2, min: 1, step: 1, unit: 'уп', buyQty: 3 },
+            { id: 'toilet_paper', name: 'Туалетная бумага', category: 'Гигиена и уход', qty: 6, min: 2, step: 1, unit: 'рул', buyQty: 8 },
+            { id: 'liquid_soap', name: 'Жидкое мыло для рук', category: 'Гигиена и уход', qty: 500, min: 150, step: 100, unit: 'мл', buyQty: 500 },
 
             // Быт и стирка
-            { id: 'laundry_pods', name: 'Капсулы / порошок для стирки', category: 'Быт и стирка', qty: 15, min: 4, step: 1, buyQty: 20, unit: 'шт' },
-            { id: 'dish_soap', name: 'Средство для мытья посуды', category: 'Быт и стирка', qty: 450, min: 100, step: 100, buyQty: 450, unit: 'мл' },
-            { id: 'parchment', name: 'Пергамент и рукав для запекания', category: 'Быт и стирка', qty: 1, min: 0, step: 1, buyQty: 1, unit: 'уп' },
-            { id: 'trash_bags', name: 'Пакеты для мусора', category: 'Быт и стирка', qty: 20, min: 5, step: 5, buyQty: 30, unit: 'шт' },
+            { id: 'laundry_pods', name: 'Капсулы / порошок для стирки', category: 'Быт и стирка', qty: 15, min: 5, step: 1, unit: 'шт', buyQty: 20 },
+            { id: 'dish_soap', name: 'Средство для мытья посуды', category: 'Быт и стирка', qty: 450, min: 100, step: 100, unit: 'мл', buyQty: 500 },
+            { id: 'parchment', name: 'Пергамент / рукав для запекания', category: 'Быт и стирка', qty: 1, min: 1, step: 1, unit: 'рул', buyQty: 1 },
+            { id: 'trash_bags', name: 'Пакеты для мусора', category: 'Быт и стирка', qty: 20, min: 5, step: 5, unit: 'шт', buyQty: 30 }
         ];
 
-        const RECIPES = [
-            {
-                id: 'chicken_soup',
-                title: 'Куриный суп с вермишелью (на 2 дня)',
-                tag: 'Обед • Пн–Вт',
-                desc: 'Варится в одной кастрюле или мультиварке. Хватает на два сытных обеда.',
-                ingredients: [
-                    { id: 'chicken_legs', amount: 400 },
-                    { id: 'potatoes', amount: 400 },
-                    { id: 'carrot', amount: 100 },
-                    { id: 'vermicelli', amount: 100 }
-                ]
-            },
-            {
-                id: 'chicken_cutlets',
-                title: 'Куриные котлеты в духовке + пюре / гречка',
-                tag: 'Ужин • Пн–Вт',
-                desc: 'Котлеты запекаются на пергаменте без жарки. Гарнир — пюре и гречка.',
-                ingredients: [
-                    { id: 'minced_meat', amount: 600 },
-                    { id: 'eggs', amount: 1 },
-                    { id: 'sour_cream', amount: 50 },
-                    { id: 'potatoes', amount: 600 },
-                    { id: 'buckwheat', amount: 200 },
-                    { id: 'butter', amount: 30 }
-                ]
-            },
-            {
-                id: 'navy_pasta',
-                title: 'Макароны по-флотски с фаршем (на 2 дня)',
-                tag: 'Обед • Ср–Чт',
-                desc: 'Сытный обед на сковороде или в мультиварке за 20 минут.',
-                ingredients: [
-                    { id: 'minced_meat', amount: 400 },
-                    { id: 'pasta', amount: 350 },
-                    { id: 'onion', amount: 100 },
-                    { id: 'butter', amount: 30 }
-                ]
-            },
-            {
-                id: 'turkey_goulash',
-                title: 'Гуляш из индейки в подливе с рисом (на 2 дня)',
-                tag: 'Обед • Пт–Сб',
-                desc: 'Нежное филе индейки в сметанно-томатной подливе с рассыпчатым рисом.',
-                ingredients: [
-                    { id: 'turkey_fillet', amount: 500 },
-                    { id: 'rice', amount: 300 },
-                    { id: 'sour_cream', amount: 100 },
-                    { id: 'tomato_paste', amount: 50 },
-                    { id: 'flour', amount: 30 }
-                ]
-            },
-            {
-                id: 'cottage_casserole',
-                title: 'Творожная запеканка из духовки',
-                tag: 'Ужин Пт / Завтрак Сб',
-                desc: 'Много белка и кальция для срастания костей. Вкусна со сметаной или медом.',
-                ingredients: [
-                    { id: 'cottage_cheese', amount: 400 },
-                    { id: 'eggs', amount: 2 },
-                    { id: 'semolina', amount: 60 },
-                    { id: 'sugar', amount: 60 },
-                    { id: 'sour_cream', amount: 100 }
-                ]
-            },
-            {
-                id: 'roast_sleeve',
-                title: 'Жаркое с картошкой в рукаве (на 2 дня)',
-                tag: 'Обед • Вс–Пн',
-                desc: 'Всё закидывается в рукав и запекается само — противень мыть не нужно.',
-                ingredients: [
-                    { id: 'pork_meat', amount: 500 },
-                    { id: 'potatoes', amount: 700 },
-                    { id: 'carrot', amount: 150 },
-                    { id: 'onion', amount: 100 }
-                ]
-            },
-            {
-                id: 'breakfast_oatmeal',
-                title: 'Завтрак: Овсянка на молоке + 2 яйца',
-                tag: 'Завтрак • 5 минут',
-                desc: 'Быстрый утренний заряд энергии и белка.',
-                ingredients: [
-                    { id: 'oatmeal', amount: 100 },
-                    { id: 'milk', amount: 250 },
-                    { id: 'butter', amount: 15 },
-                    { id: 'eggs', amount: 2 }
-                ]
-            },
-            {
-                id: 'dinner_sausages',
-                title: 'Быстрый ужин: Яичница с колбасками и горошком',
-                tag: 'Ужин • 7 минут',
-                desc: 'Когда совсем лень готовить сложные блюда.',
-                ingredients: [
-                    { id: 'eggs', amount: 3 },
-                    { id: 'sausages', amount: 200 },
-                    { id: 'green_peas', amount: 1 }
-                ]
-            }
+        // Дополнительный справочник популярных продуктов (если дома их ещё нет)
+        const EXTRA_FOOD_DATABASE = [
+            { id: 'db_chicken_breast', name: 'Куриная грудка (филе)', unit: 'г', macros: { kcal: 113, p: 23.6, f: 1.9, c: 0.4 } },
+            { id: 'db_whey_protein', name: 'Сывороточный протеин (порошок)', unit: 'г', macros: { kcal: 380, p: 76.0, f: 5.5, c: 6.5 } },
+            { id: 'db_protein_bar', name: 'Протеиновый батончик (1 шт ~60 г)', unit: 'шт', macros: { kcal: 195, p: 20.0, f: 6.5, c: 12.0 } },
+            { id: 'db_apple', name: 'Яблоко свежее', unit: 'г', macros: { kcal: 47, p: 0.4, f: 0.4, c: 9.8 } },
+            { id: 'db_avocado', name: 'Авокадо', unit: 'г', macros: { kcal: 160, p: 2.0, f: 14.7, c: 1.8 } },
+            { id: 'db_olive_oil', name: 'Масло оливковое / подсолнечное', unit: 'г', macros: { kcal: 898, p: 0, f: 99.8, c: 0 } },
+            { id: 'db_syrniki', name: 'Сырники творожные', unit: 'г', macros: { kcal: 215, p: 14.2, f: 8.5, c: 20.4 } },
+            { id: 'db_greek_yogurt', name: 'Йогурт греческий натуральный', unit: 'г', macros: { kcal: 68, p: 8.0, f: 2.0, c: 4.5 } },
+            { id: 'db_chocolate_dark', name: 'Шоколад тёмный 70%', unit: 'г', macros: { kcal: 545, p: 7.8, f: 35.0, c: 45.0 } },
+            { id: 'db_shawarma', name: 'Шаурма с курицей (классическая)', unit: 'г', macros: { kcal: 215, p: 11.5, f: 10.8, c: 18.0 } },
+            { id: 'db_pizza', name: 'Пицца Пепперони / Маргарита', unit: 'г', macros: { kcal: 265, p: 11.2, f: 10.5, c: 31.0 } },
+            { id: 'db_borscht', name: 'Борщ с мясом (готовый суп)', unit: 'г', macros: { kcal: 58, p: 3.2, f: 2.8, c: 5.1 } }
         ];
-
-        const EXPENSE_CATEGORIES = {
-            'Еда и продукты': { color: '#556B2F', icon: 'ph-carrot' },
-            'Гигиена и уход': { color: '#3B82F6', icon: 'ph-sparkle' },
-            'Быт и стирка': { color: '#8B5CF6', icon: 'ph-broom' },
-            'Доставка и такси': { color: '#F59E0B', icon: 'ph-moped' },
-            'Прочее': { color: '#D96B43', icon: 'ph-receipt' }
+<!-- ... existing code ... -->
+        // Состояние КБЖУ и целей
+        let macroProfile = {
+            goal: 'maintain', // 'lose' | 'maintain' | 'gain'
+            weight: 75,
+            height: 178,
+            age: 28,
+            gender: 'male',
+            activity: 1.2,
+            target: { kcal: 2150, p: 135, f: 70, c: 245 },
+            todayDate: '',
+            eaten: { kcal: 0, p: 0, f: 0, c: 0 },
+            foodLog: []
         };
 
-        // ==========================================
-        // 2. СОСТОЯНИЕ И ХРАНЕНИЕ
-        // ==========================================
-        const STORAGE_KEY = 'home_inventory_v2';
-        const EXPENSES_KEY = 'home_expenses_v2';
-        const SETTINGS_KEY = 'home_settings_v2';
-
-        let products = [];
-        let expenses = [];
-        let checkedShoppingIds = new Set();
-        let activeTab = 'inventory';
-        let activeCategory = 'Все';
-        let soundEnabled = true;
-        let userGeminiApiKey = '';
-        let previousLowCount = 0;
-
-        // Текущий выбранный месяц для аналитики расходов
-        let selectedYear = new Date().getFullYear();
-        let selectedMonth = new Date().getMonth();
-
-        // Данные для сканера чеков
-        let receiptBase64 = null;
-        let receiptMimeType = null;
-        let currentParsedReceipt = null;
-
-        function getTodayISO() {
-            const d = new Date();
-            const offset = d.getTimezoneOffset();
-            const local = new Date(d.getTime() - offset * 60 * 1000);
-            return local.toISOString().split('T')[0];
-        }
-
-        function loadState() {
-            try {
-                const savedProds = localStorage.getItem(STORAGE_KEY);
-                products = savedProds ? JSON.parse(savedProds) : JSON.parse(JSON.stringify(INITIAL_PRODUCTS));
+        let currentFoodEntryMode = 'db';
+        let selectedDbFoodItem = null;
+<!-- ... existing code ... -->
+                const savedProducts = localStorage.getItem(STORAGE_KEY);
+                if (savedProducts) {
+                    products = JSON.parse(savedProducts);
+                    // Подтягиваем КБЖУ из стартовой базы, если пользователь обновлял старую версию
+                    products.forEach(p => {
+                        if (!p.macros) {
+                            const base = INITIAL_PRODUCTS.find(b => b.id === p.id);
+                            if (base && base.macros) p.macros = { ...base.macros };
+                        }
+                    });
+                } else {
+                    products = JSON.parse(JSON.stringify(INITIAL_PRODUCTS));
+                }
 
                 const savedExpenses = localStorage.getItem(EXPENSES_KEY);
                 if (savedExpenses) {
                     expenses = JSON.parse(savedExpenses);
-                } else {
-                    // Стартовый пример одной операции, чтобы диаграмма сразу красиво отображалась
-                    expenses = [
-                        {
-                            id: 'init_exp_1',
-                            date: getTodayISO(),
-                            title: 'Стартовая закупка продуктов и быта',
-                            category: 'Еда и продукты',
-                            amount: 4250,
-                            itemsCount: 14
-                        }
-                    ];
                 }
 
                 const savedSettings = localStorage.getItem(SETTINGS_KEY);
@@ -804,521 +313,37 @@
                     const parsed = JSON.parse(savedSettings);
                     soundEnabled = parsed.soundEnabled !== undefined ? parsed.soundEnabled : true;
                     userGeminiApiKey = parsed.userGeminiApiKey || '';
+                    customCategories = Array.isArray(parsed.customCategories) ? parsed.customCategories : [];
+                }
+
+                const savedMacros = localStorage.getItem(MACROS_KEY);
+                if (savedMacros) {
+                    macroProfile = { ...macroProfile, ...JSON.parse(savedMacros) };
+                }
+                if (!Array.isArray(macroProfile.foodLog)) macroProfile.foodLog = [];
+
+                // Если наступил новый день — обнуляем съеденное за сегодня
+                const today = getTodayISO();
+                if (macroProfile.todayDate !== today) {
+                    macroProfile.todayDate = today;
+                    macroProfile.eaten = { kcal: 0, p: 0, f: 0, c: 0 };
+                    macroProfile.foodLog = [];
                 }
             } catch (e) {
                 products = JSON.parse(JSON.stringify(INITIAL_PRODUCTS));
                 expenses = [];
             }
-            saveState();
-            previousLowCount = getLowStockProducts().length;
-            updateSoundUI();
-        }
-
-        function saveState() {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
-                localStorage.setItem(EXPENSES_KEY, JSON.stringify(expenses));
-                localStorage.setItem(SETTINGS_KEY, JSON.stringify({ soundEnabled, userGeminiApiKey }));
-            } catch (e) {
-                console.error('Ошибка сохранения:', e);
-            }
-        }
-
-        // ==========================================
-        // 3. ЗВУК И УВЕДОМЛЕНИЯ
-        // ==========================================
-        function playNotificationSound() {
-            if (!soundEnabled) return;
-            try {
-                const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                if (!AudioCtx) return;
-                const ctx = new AudioCtx();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-                osc.frequency.setValueAtTime(880, ctx.currentTime + 0.12);
-                gain.gain.setValueAtTime(0.12, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.36);
-            } catch (e) {}
-        }
-
-        function toggleSound() {
-            soundEnabled = !soundEnabled;
-            saveState();
-            updateSoundUI();
-            if (soundEnabled) {
-                playNotificationSound();
-                showToast('Звуковые напоминания включены');
-            } else {
-                showToast('Звук выключен');
-            }
-        }
-
-        function updateSoundUI() {
-            const icon = document.getElementById('soundIcon');
-            const btn = document.getElementById('soundBtn');
-            if (soundEnabled) {
-                icon.className = 'ph-fill ph-bell-ringing text-xl text-terracotta-600';
-                btn.classList.add('bg-cream-200');
-            } else {
-                icon.className = 'ph ph-bell-slash text-xl text-olive-600';
-                btn.classList.remove('bg-cream-200');
-            }
-        }
-
-        let toastTimer = null;
-        function showToast(message, isAlert = false) {
-            const toast = document.getElementById('toast');
-            const msgEl = document.getElementById('toastMessage');
-            const iconEl = document.getElementById('toastIcon');
-
-            msgEl.textContent = message;
-            iconEl.className = isAlert
-                ? 'ph-fill ph-warning-circle text-terracotta-500 text-xl shrink-0'
-                : 'ph-fill ph-check-circle text-emerald-400 text-xl shrink-0';
-
-            toast.classList.remove('opacity-0', '-translate-y-2');
-            toast.classList.add('opacity-100', 'translate-y-0');
-
-            clearTimeout(toastTimer);
-            toastTimer = setTimeout(() => {
-                toast.classList.add('opacity-0', '-translate-y-2');
-                toast.classList.remove('opacity-100', 'translate-y-0');
-            }, 3200);
-        }
-
-        // ==========================================
-        // 4. УМНЫЙ СКАНЕР ЧЕКОВ (GEMINI API)
-        // ==========================================
-        function handleImageUpload(event) {
-            const file = event.target.files?.[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const dataUrl = e.target.result;
-                const parts = dataUrl.split(',');
-                receiptMimeType = parts[0].match(/:(.*?);/)[1] || 'image/png';
-                receiptBase64 = parts[1];
-
-                document.getElementById('receiptPreviewImg').src = dataUrl;
-                document.getElementById('imagePreviewBox').classList.remove('hidden');
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function clearReceiptImage() {
-            receiptBase64 = null;
-            receiptMimeType = null;
-            document.getElementById('receiptImageInput').value = '';
-            document.getElementById('imagePreviewBox').classList.add('hidden');
-        }
-
-        async function fetchGeminiWithBackoff(payload) {
-            const apiKey = userGeminiApiKey.trim() || "";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
-            const delays = [1000, 2000, 4000];
-
-            for (let attempt = 0; attempt <= delays.length; attempt++) {
-                try {
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    return await response.json();
-                } catch (err) {
-                    if (attempt === delays.length) throw err;
-                    await new Promise(res => setTimeout(res, delays[attempt]));
-                }
-            }
-        }
-
-        async function analyzeReceiptWithAI() {
-            const textInput = document.getElementById('receiptTextInput').value.trim();
-            if (!receiptBase64 && !textInput) {
-                showToast('Загрузите скриншот чека или вставьте его текст!', true);
-                return;
-            }
-
-            const btn = document.getElementById('scanBtn');
-            const originalHtml = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = `<i class="ph-bold ph-spinner text-lg animate-spin-slow"></i> Распознаю позиции и цены...`;
-
-            // Передаём модели список существующих ID, чтобы она могла сопоставить товары
-            const existingCatalog = products.map(p => ({
-                id: p.id,
-                name: p.name,
-                category: p.category,
-                unit: p.unit
-            }));
-
-            const systemPrompt = `Ты — умный ассистент по учёту домашних запасов и расходов. 
-Тебе передают скриншот чека из службы доставки/магазина или текст заказа.
-Твоя задача:
-1. Извлечь название магазина (если не видно, напиши "Доставка / Магазин") и итоговую сумму чека.
-2. Извлечь каждую купленную позицию, её цену, количество и единицу измерения (переводи кг в г, литры в мл, например 0.8 кг -> 800 г, 1 л -> 1000 мл).
-3. Сопоставить каждую позицию с существующим каталогом пользователя (matchedId). Если товар подходит по смыслу (например, "Бедро куриное без кожи 800г" -> id "chicken_legs", "Яйцо куриное С1 10шт" -> id "eggs", "Шампунь Head&Shoulders 400мл" -> id "shampoo"), укажи этот matchedId и используй его единицу измерения. Если товара в каталоге нет — укажи matchedId: "".
-4. Определить категорию товара для запасов ("Мясо и полуфабрикаты", "Молочка и яйца", "Овощи и фрукты", "Крупы и бакалея", "Хлеб и разное", "Гигиена и уход", "Быт и стирка") и категорию расхода ("Еда и продукты", "Гигиена и уход", "Быт и стирка", "Доставка и такси", "Прочее").
-5. Если в чеке есть платная доставка или сервисный сбор, добавь её как позицию с isDeliveryFee: true и expenseCategory: "Доставка и такси".`;
-
-            const userParts = [
-                {
-                    text: `Вот текущий каталог запасов пользователя:\n${JSON.stringify(existingCatalog)}\n\n` +
-                          (textInput ? `Текст чека от пользователя:\n${textInput}` : `Распознай товары и суммы на этом изображении чека.`)
-                }
-            ];
-
-            if (receiptBase64) {
-                userParts.push({
-                    inlineData: {
-                        mimeType: receiptMimeType || 'image/png',
-                        data: receiptBase64
-                    }
+<!-- ... existing code ... -->
+            // Добавляем 1 порцию блюда в дневное КБЖУ
+            if (recipe.portionMacros) {
+                addFoodLogEntry({
+                    title: `${recipe.title} (1 порция)`,
+                    kcal: recipe.portionMacros.kcal,
+                    p: recipe.portionMacros.p,
+                    f: recipe.portionMacros.f,
+                    c: recipe.portionMacros.c
                 });
             }
-
-            const payload = {
-                contents: [{ role: 'user', parts: userParts }],
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: "OBJECT",
-                        properties: {
-                            storeName: { type: "STRING" },
-                            totalAmount: { type: "NUMBER" },
-                            items: {
-                                type: "ARRAY",
-                                items: {
-                                    type: "OBJECT",
-                                    properties: {
-                                        name: { type: "STRING" },
-                                        matchedId: { type: "STRING" },
-                                        qty: { type: "NUMBER" },
-                                        unit: { type: "STRING" },
-                                        price: { type: "NUMBER" },
-                                        inventoryCategory: { type: "STRING" },
-                                        expenseCategory: { type: "STRING" },
-                                        isDeliveryFee: { type: "BOOLEAN" }
-                                    },
-                                    required: ["name", "matchedId", "qty", "unit", "price", "inventoryCategory", "expenseCategory", "isDeliveryFee"]
-                                }
-                            }
-                        },
-                        required: ["storeName", "totalAmount", "items"]
-                    }
-                }
-            };
-
-            try {
-                const result = await fetchGeminiWithBackoff(payload);
-                const rawJson = result?.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (!rawJson) throw new Error('Пустой ответ от ИИ');
-
-                const parsed = JSON.parse(rawJson);
-                if (!parsed.items || parsed.items.length === 0) {
-                    throw new Error('Не удалось найти товары в чеке');
-                }
-
-                // Пересчитываем итог, если он не был явно указан
-                if (!parsed.totalAmount || parsed.totalAmount <= 0) {
-                    parsed.totalAmount = parsed.items.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
-                }
-
-                currentParsedReceipt = parsed;
-                renderParsedReceiptPreview();
-                showToast('Чек распознан! Проверьте список ниже');
-            } catch (err) {
-                console.error(err);
-                if (!userGeminiApiKey && window.location.hostname.includes('github.io')) {
-                    showToast('Добавьте API-ключ в Настройках (шестерёнка вверху)!', true);
-                    openSettingsModal();
-                } else {
-                    showToast('Не удалось разобрать чек. Проверьте API-ключ или качество фото.', true);
-                }
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalHtml;
-            }
-        }
-
-        function renderParsedReceiptPreview() {
-            if (!currentParsedReceipt) return;
-            const box = document.getElementById('parsedResultBox');
-            box.classList.remove('hidden');
-
-            document.getElementById('parsedStoreName').textContent = currentParsedReceipt.storeName || 'Чек из магазина';
-            document.getElementById('parsedTotalSum').textContent = `${Math.round(currentParsedReceipt.totalAmount).toLocaleString('ru-RU')} ₽`;
-
-            const listEl = document.getElementById('parsedItemsList');
-            listEl.innerHTML = currentParsedReceipt.items.map((item, idx) => {
-                const matchedProd = item.matchedId ? products.find(p => p.id === item.matchedId) : null;
-                const badge = item.isDeliveryFee
-                    ? `<span class="text-[10px] px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-800 font-semibold">Только в расходы</span>`
-                    : matchedProd
-                        ? `<span class="text-[10px] px-2 py-0.5 rounded-md bg-olive-700/15 text-olive-800 font-semibold">→ В «${matchedProd.name}»</span>`
-                        : `<span class="text-[10px] px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-800 font-semibold">+ Новая карточка (${item.inventoryCategory})</span>`;
-
-                return `
-                    <div class="bg-white border border-cream-300 rounded-2xl p-2.5 flex items-center justify-between gap-2">
-                        <div class="min-w-0 flex-1">
-                            <div class="font-semibold text-xs text-olive-900 truncate">${item.name}</div>
-                            <div class="mt-1 flex flex-wrap items-center gap-1.5">
-                                <span class="text-xs font-bold text-olive-800">+${item.qty} ${item.unit}</span>
-                                ${badge}
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-2 shrink-0">
-                            <span class="font-bold text-xs text-olive-900">${Math.round(item.price)} ₽</span>
-                            <button onclick="removeParsedItem(${idx})" class="p-1.5 rounded-lg text-terracotta-600 hover:bg-terracotta-500/10">
-                                <i class="ph-bold ph-trash text-sm"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function removeParsedItem(idx) {
-            if (!currentParsedReceipt) return;
-            currentParsedReceipt.items.splice(idx, 1);
-            currentParsedReceipt.totalAmount = currentParsedReceipt.items.reduce((s, it) => s + (Number(it.price) || 0), 0);
-            if (currentParsedReceipt.items.length === 0) {
-                cancelParsedReceipt();
-            } else {
-                renderParsedReceiptPreview();
-            }
-        }
-
-        function cancelParsedReceipt() {
-            currentParsedReceipt = null;
-            document.getElementById('parsedResultBox').classList.add('hidden');
-        }
-
-        function applyParsedReceipt() {
-            if (!currentParsedReceipt) return;
-
-            let updatedCount = 0;
-            const categoryTotals = {};
-
-            currentParsedReceipt.items.forEach(item => {
-                const price = Number(item.price) || 0;
-                const expCat = EXPENSE_CATEGORIES[item.expenseCategory] ? item.expenseCategory : 'Прочее';
-                categoryTotals[expCat] = (categoryTotals[expCat] || 0) + price;
-
-                // Если это не плата за доставку, пополняем запасы дома
-                if (!item.isDeliveryFee) {
-                    const matchedProd = item.matchedId ? products.find(p => p.id === item.matchedId) : null;
-                    if (matchedProd) {
-                        matchedProd.qty += Number(item.qty) || 0;
-                        checkedShoppingIds.delete(matchedProd.id);
-                    } else {
-                        const qtyVal = Number(item.qty) || 1;
-                        const step = (item.unit === 'г' || item.unit === 'мл') ? 100 : 1;
-                        products.unshift({
-                            id: 'receipt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-                            name: item.name,
-                            category: item.inventoryCategory || 'Хлеб и разное',
-                            qty: qtyVal,
-                            min: Math.max(1, Math.round(qtyVal * 0.25)),
-                            step: step,
-                            buyQty: qtyVal,
-                            unit: item.unit || 'шт'
-                        });
-                    }
-                    updatedCount++;
-                }
-            });
-
-            // Записываем расходы в банковскую статистику по категориям чека
-            const today = getTodayISO();
-            const storeName = currentParsedReceipt.storeName || 'Чек из доставки';
-            const entries = Object.entries(categoryTotals).filter(([, sum]) => sum > 0);
-
-            if (entries.length > 0) {
-                entries.forEach(([cat, sum]) => {
-                    expenses.unshift({
-                        id: 'exp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-                        date: today,
-                        title: `${storeName} (${cat.toLowerCase()})`,
-                        category: cat,
-                        amount: Math.round(sum)
-                    });
-                });
-            } else if (currentParsedReceipt.totalAmount > 0) {
-                expenses.unshift({
-                    id: 'exp_' + Date.now(),
-                    date: today,
-                    title: storeName,
-                    category: 'Еда и продукты',
-                    amount: Math.round(currentParsedReceipt.totalAmount)
-                });
-            }
-
-            // Очищаем форму сканера
-            document.getElementById('receiptTextInput').value = '';
-            clearReceiptImage();
-            cancelParsedReceipt();
-
-            saveState();
-            checkLowStockAlerts();
-            renderAll();
-            showToast(`Пополнено: ${updatedCount} поз. Расходы записаны!`);
-            switchTab('inventory');
-        }
-
-        // ==========================================
-        // 5. ЛОГИКА ЗАПАСОВ И СПИСКА ПОКУПОК
-        // ==========================================
-        function getLowStockProducts() {
-            return products.filter(p => p.qty <= p.min);
-        }
-
-        function checkLowStockAlerts(triggeredProductName = null) {
-            const lowItems = getLowStockProducts();
-            const count = lowItems.length;
-
-            const badge = document.getElementById('navBadge');
-            const banner = document.getElementById('alertBanner');
-            const bannerText = document.getElementById('alertBannerText');
-            const subtitle = document.getElementById('headerSubtitle');
-
-            if (count > 0) {
-                badge.textContent = count;
-                badge.classList.remove('hidden');
-                banner.classList.remove('hidden');
-
-                const namesPreview = lowItems.slice(0, 2).map(i => i.name.split(' ')[0]).join(', ');
-                const extra = count > 2 ? ` и ещё ${count - 2}` : '';
-                bannerText.textContent = `Заканчивается: ${namesPreview}${extra} (${count} поз.)`;
-                subtitle.textContent = `Нужно докупить: ${count} поз.`;
-            } else {
-                badge.classList.add('hidden');
-                banner.classList.add('hidden');
-                subtitle.textContent = 'Дома всё есть';
-            }
-
-            if (triggeredProductName && count > previousLowCount) {
-                playNotificationSound();
-                showToast(`Заканчивается «${triggeredProductName}» — добавлено в покупки!`, true);
-            }
-            previousLowCount = count;
-        }
-
-        function changeQty(id, delta) {
-            const prod = products.find(p => p.id === id);
-            if (!prod) return;
-
-            const wasAboveMin = prod.qty > prod.min;
-            prod.qty = Math.max(0, prod.qty + delta);
-            saveState();
-
-            const fellBelowMin = wasAboveMin && prod.qty <= prod.min;
-            checkLowStockAlerts(fellBelowMin ? prod.name : null);
-            renderAll();
-        }
-
-        function setZeroQty(id) {
-            const prod = products.find(p => p.id === id);
-            if (!prod) return;
-
-            const wasAboveMin = prod.qty > prod.min;
-            prod.qty = 0;
-            saveState();
-
-            checkLowStockAlerts(wasAboveMin ? prod.name : null);
-            renderAll();
-        }
-
-        function markAsBought(id) {
-            const prod = products.find(p => p.id === id);
-            if (!prod) return;
-
-            prod.qty += prod.buyQty;
-            checkedShoppingIds.delete(id);
-            saveState();
-            checkLowStockAlerts();
-            renderAll();
-            showToast(`+${prod.buyQty} ${prod.unit} «${prod.name}» добавлено в дом!`);
-        }
-
-        function toggleShoppingCheck(id) {
-            if (checkedShoppingIds.has(id)) {
-                checkedShoppingIds.delete(id);
-            } else {
-                checkedShoppingIds.add(id);
-            }
-            renderShoppingList();
-        }
-
-        function buyAllCheckedOrAll() {
-            const lowItems = getLowStockProducts();
-            if (lowItems.length === 0) {
-                showToast('Список покупок уже пуст!');
-                return;
-            }
-
-            const targetItems = checkedShoppingIds.size > 0
-                ? lowItems.filter(p => checkedShoppingIds.has(p.id))
-                : lowItems;
-
-            targetItems.forEach(p => {
-                p.qty += p.buyQty;
-            });
-
-            checkedShoppingIds.clear();
-            saveState();
-            checkLowStockAlerts();
-            renderAll();
-            showToast(`Пополнено: ${targetItems.length} поз. Запасы обновлены!`);
-        }
-
-        function copyShoppingList() {
-            const lowItems = getLowStockProducts();
-            if (lowItems.length === 0) {
-                showToast('Список покупок пуст — дома всё есть!');
-                return;
-            }
-
-            const lines = lowItems.map((p, idx) => `${idx + 1}. ${p.name} — ${p.buyQty} ${p.unit}`);
-            const text = `Список покупок для доставки:\n` + lines.join('\n');
-
-            const helper = document.getElementById('clipboardHelper');
-            helper.value = text;
-            helper.select();
-            helper.setSelectionRange(0, 99999);
-            try {
-                document.execCommand('copy');
-                showToast('Список скопирован! Вставляйте в доставку');
-            } catch (err) {
-                showToast('Не удалось скопировать текст', true);
-            }
-        }
-
-        function cookRecipe(recipeId) {
-            const recipe = RECIPES.find(r => r.id === recipeId);
-            if (!recipe) return;
-
-            let newlyLowNames = [];
-
-            recipe.ingredients.forEach(ing => {
-                const prod = products.find(p => p.id === ing.id);
-                if (prod) {
-                    const wasAboveMin = prod.qty > prod.min;
-                    prod.qty = Math.max(0, prod.qty - ing.amount);
-                    if (wasAboveMin && prod.qty <= prod.min) {
-                        newlyLowNames.push(prod.name);
-                    }
-                }
-            });
 
             saveState();
             checkLowStockAlerts();
@@ -1326,549 +351,363 @@
 
             if (newlyLowNames.length > 0) {
                 playNotificationSound();
-                showToast(`Списано! Заканчивается: ${newlyLowNames.join(', ')}`, true);
+                showToast(`Списано + учтено КБЖУ! Заканчивается: ${newlyLowNames.join(', ')}`, true);
             } else {
-                showToast(`Приготовлено: «${recipe.title}». Продукты списаны!`);
+                showToast(`Готово! Продукты списаны, +${recipe.portionMacros?.kcal || 0} ккал в дневник`);
             }
         }
 
-        // ==========================================
-        // 6. ОТРИСОВКА ЗАПАСОВ, ПОКУПОК И МЕНЮ
-        // ==========================================
-        function switchTab(tabName) {
-            activeTab = tabName;
-            const tabs = ['inventory', 'scanner', 'shopping', 'menu', 'expenses'];
-
-            tabs.forEach(t => {
-                const sec = document.getElementById(`tab-${t}`);
-                const btn = document.getElementById(`nav-${t}`);
-                if (t === tabName) {
-                    sec.classList.remove('hidden');
-                    btn.classList.add('bg-olive-700', 'text-cream-50');
-                    btn.classList.remove('text-olive-800', 'hover:bg-cream-200/60');
-                } else {
-                    sec.classList.add('hidden');
-                    btn.classList.remove('bg-olive-700', 'text-cream-50');
-                    btn.classList.add('text-olive-800', 'hover:bg-cream-200/60');
-                }
+        function logRecipePortionOnly(recipeId) {
+            const recipe = RECIPES.find(r => r.id === recipeId);
+            if (!recipe || !recipe.portionMacros) return;
+            addFoodLogEntry({
+                title: `${recipe.title} (1 порция)`,
+                kcal: recipe.portionMacros.kcal,
+                p: recipe.portionMacros.p,
+                f: recipe.portionMacros.f,
+                c: recipe.portionMacros.c
             });
-
-            renderAll();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            saveState();
+            renderMacrosWidget();
+            showToast(`+${recipe.portionMacros.kcal} ккал (${recipe.portionMacros.p}г белка) добавлено за сегодня!`);
         }
 
-        function renderCategoryFilters() {
-            const specialFilters = ['Все', 'Заканчиваются', 'Вся еда', 'Гигиена и быт'];
-            const specificCats = [...new Set(products.map(p => p.category))];
-            const allFilters = [...specialFilters, ...specificCats];
+        function addFoodLogEntry(entry) {
+            macroProfile.todayDate = getTodayISO();
+            if (!Array.isArray(macroProfile.foodLog)) macroProfile.foodLog = [];
+            const item = {
+                id: 'log_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+                title: entry.title,
+                kcal: Math.round(entry.kcal || 0),
+                p: Math.round((entry.p || 0) * 10) / 10,
+                f: Math.round((entry.f || 0) * 10) / 10,
+                c: Math.round((entry.c || 0) * 10) / 10
+            };
+            macroProfile.foodLog.unshift(item);
+            macroProfile.eaten.kcal = Math.round(macroProfile.eaten.kcal + item.kcal);
+            macroProfile.eaten.p = Math.round((macroProfile.eaten.p + item.p) * 10) / 10;
+            macroProfile.eaten.f = Math.round((macroProfile.eaten.f + item.f) * 10) / 10;
+            macroProfile.eaten.c = Math.round((macroProfile.eaten.c + item.c) * 10) / 10;
+        }
 
-            const container = document.getElementById('categoryFilters');
-            container.innerHTML = allFilters.map(cat => {
-                const isActive = activeCategory === cat;
-                const activeClasses = isActive
-                    ? 'bg-olive-700 text-cream-50 shadow-xs'
-                    : 'bg-cream-50 text-olive-800 border border-cream-200 hover:bg-cream-200/50';
+        function removeFoodLogEntry(logId) {
+            if (!Array.isArray(macroProfile.foodLog)) return;
+            const idx = macroProfile.foodLog.findIndex(x => x.id === logId);
+            if (idx === -1) return;
+            const item = macroProfile.foodLog[idx];
+            macroProfile.eaten.kcal = Math.max(0, Math.round(macroProfile.eaten.kcal - item.kcal));
+            macroProfile.eaten.p = Math.max(0, Math.round((macroProfile.eaten.p - item.p) * 10) / 10);
+            macroProfile.eaten.f = Math.max(0, Math.round((macroProfile.eaten.f - item.f) * 10) / 10);
+            macroProfile.eaten.c = Math.max(0, Math.round((macroProfile.eaten.c - item.c) * 10) / 10);
+            macroProfile.foodLog.splice(idx, 1);
+            saveState();
+            renderMacrosWidget();
+            showToast('Запись удалена из дневника');
+        }
+
+        // ==========================================
+        // 9. ОТРИСОВКА ИНТЕРФЕЙСА (RENDER ENGINE)
+        // ==========================================
+        function renderAll() {
+            renderCategories();
+            renderProducts();
+            renderRecipes();
+            renderShoppingList();
+            renderExpenses();
+            renderMacrosWidget();
+        }
+        }
+<!-- ... existing code ... -->
+        function resetTodayMacros() {
+            macroProfile.todayDate = getTodayISO();
+            macroProfile.eaten = { kcal: 0, p: 0, f: 0, c: 0 };
+            macroProfile.foodLog = [];
+            saveState();
+            renderMacrosWidget();
+            showToast('Дневной счётчик КБЖУ обнулён');
+        }
+
+        function openQuickMacroModal() {
+            document.getElementById('qmName').value = '';
+            document.getElementById('qmKcal').value = '';
+            document.getElementById('qmProt').value = '';
+            document.getElementById('qmFat').value = '';
+            document.getElementById('qmCarb').value = '';
+            document.getElementById('foodDbSearch').value = '';
+            selectedDbFoodItem = null;
+            document.getElementById('selectedDbFoodCard').classList.add('hidden');
+            switchFoodEntryMode('db');
+            filterFoodDbList();
+            document.getElementById('quickMacroModal').classList.remove('hidden');
+        }
+
+        function closeQuickMacroModal() {
+            document.getElementById('quickMacroModal').classList.add('hidden');
+        }
+
+        function switchFoodEntryMode(mode) {
+            currentFoodEntryMode = mode;
+            const dbBtn = document.getElementById('foodModeBtn-db');
+            const manBtn = document.getElementById('foodModeBtn-manual');
+            const dbBox = document.getElementById('foodModeBox-db');
+            const manBox = document.getElementById('foodModeBox-manual');
+
+            if (mode === 'db') {
+                dbBtn.className = 'py-2 px-3 rounded-xl text-xs font-bold bg-olive-700 text-cream-50 shadow-2xs transition';
+                manBtn.className = 'py-2 px-3 rounded-xl text-xs font-bold text-olive-800 transition';
+                dbBox.classList.remove('hidden');
+                manBox.classList.add('hidden');
+            } else {
+                manBtn.className = 'py-2 px-3 rounded-xl text-xs font-bold bg-olive-700 text-cream-50 shadow-2xs transition';
+                dbBtn.className = 'py-2 px-3 rounded-xl text-xs font-bold text-olive-800 transition';
+                manBox.classList.remove('hidden');
+                dbBox.classList.add('hidden');
+            }
+        }
+
+        function getAllMacroFoodItems() {
+            const homeFoods = products
+                .filter(p => p.macros && (p.macros.kcal > 0 || p.macros.p > 0 || p.macros.f > 0 || p.macros.c > 0))
+                .map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    unit: p.unit,
+                    qty: p.qty,
+                    inHome: true,
+                    macros: p.macros
+                }));
+
+            const extraFoods = EXTRA_FOOD_DATABASE
+                .filter(e => !homeFoods.some(h => h.name.toLowerCase() === e.name.toLowerCase()))
+                .map(e => ({
+                    id: e.id,
+                    name: e.name,
+                    unit: e.unit,
+                    qty: null,
+                    inHome: false,
+                    macros: e.macros
+                }));
+
+            return [...homeFoods, ...extraFoods];
+        }
+
+        function filterFoodDbList() {
+            const q = (document.getElementById('foodDbSearch').value || '').trim().toLowerCase();
+            const allItems = getAllMacroFoodItems();
+            const filtered = q ? allItems.filter(i => i.name.toLowerCase().includes(q)) : allItems.slice(0, 12);
+
+            const listEl = document.getElementById('foodDbResults');
+            if (filtered.length === 0) {
+                listEl.innerHTML = `<div class="text-center text-xs text-olive-700/70 py-3">Ничего не найдено. Переключитесь на «Вручную» или добавьте товар через «+ Добавить».</div>`;
+                return;
+            }
+
+            listEl.innerHTML = filtered.map(item => {
+                const isPiece = item.unit === 'шт' || item.unit === 'банка';
+                const perLabel = isPiece ? `1 ${item.unit}` : `100 ${item.unit}`;
+                const stockBadge = item.inHome
+                    ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-olive-700/10 text-olive-800">Дома: ${item.qty} ${item.unit}</span>`
+                    : `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-cream-200 text-olive-700">Справочник</span>`;
+
                 return `
-                    <button onclick="setCategory('${cat}')"
-                        class="px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition ${activeClasses}">
-                        ${cat}
+                    <button type="button" onclick="selectDbFoodItem('${item.id}')"
+                        class="w-full text-left bg-white hover:bg-cream-100 border border-cream-200 rounded-xl p-2.5 flex items-center justify-between gap-2 transition">
+                        <div class="min-w-0">
+                            <div class="font-bold text-xs text-olive-900 truncate">${item.name}</div>
+                            <div class="text-[11px] text-olive-700/75">На ${perLabel}: ${item.macros.kcal} ккал (Б:${item.macros.p} Ж:${item.macros.f} У:${item.macros.c})</div>
+                        </div>
+                        <div class="shrink-0">${stockBadge}</div>
                     </button>
                 `;
             }).join('');
         }
 
-        function setCategory(cat) {
-            activeCategory = cat;
-            renderInventory();
+        function selectDbFoodItem(itemId) {
+            const allItems = getAllMacroFoodItems();
+            const item = allItems.find(i => i.id === itemId);
+            if (!item) return;
+
+            selectedDbFoodItem = item;
+            const isPiece = item.unit === 'шт' || item.unit === 'банка';
+            const perLabel = isPiece ? `1 ${item.unit}` : `100 ${item.unit}`;
+
+            document.getElementById('selDbFoodName').textContent = item.name;
+            document.getElementById('selDbFoodBaseInfo').textContent = `На ${perLabel}: ${item.macros.kcal} ккал • Б:${item.macros.p} Ж:${item.macros.f} У:${item.macros.c}`;
+            document.getElementById('selDbFoodStock').textContent = item.inHome ? `Дома: ${item.qty} ${item.unit}` : 'Из справочника';
+            document.getElementById('selDbAmountLabel').textContent = `Сколько съели (${item.unit}):`;
+            document.getElementById('selDbAmount').value = isPiece ? 1 : 100;
+
+            const deductCheckbox = document.getElementById('selDbDeductStock');
+            deductCheckbox.checked = item.inHome && item.qty > 0;
+            deductCheckbox.disabled = !item.inHome;
+
+            document.getElementById('selectedDbFoodCard').classList.remove('hidden');
+            recalcSelectedDbFood();
         }
 
-        function renderInventory() {
-            renderCategoryFilters();
-            const search = document.getElementById('searchInput').value.toLowerCase().trim();
-            const container = document.getElementById('inventoryList');
+        function recalcSelectedDbFood() {
+            if (!selectedDbFoodItem) return;
+            const amount = Math.max(0, parseFloat(document.getElementById('selDbAmount').value) || 0);
+            const isPiece = selectedDbFoodItem.unit === 'шт' || selectedDbFoodItem.unit === 'банка';
+            const factor = isPiece ? amount : (amount / 100);
 
-            const nonFoodCats = ['Гигиена и уход', 'Быт и стирка'];
+            const kcal = Math.round(selectedDbFoodItem.macros.kcal * factor);
+            const p = Math.round(selectedDbFoodItem.macros.p * factor * 10) / 10;
+            const f = Math.round(selectedDbFoodItem.macros.f * factor * 10) / 10;
+            const c = Math.round(selectedDbFoodItem.macros.c * factor * 10) / 10;
 
-            let filtered = products.filter(p => {
-                const matchesSearch = p.name.toLowerCase().includes(search);
-                if (!matchesSearch) return false;
-                if (activeCategory === 'Все') return true;
-                if (activeCategory === 'Заканчиваются') return p.qty <= p.min;
-                if (activeCategory === 'Вся еда') return !nonFoodCats.includes(p.category);
-                if (activeCategory === 'Гигиена и быт') return nonFoodCats.includes(p.category);
-                return p.category === activeCategory;
-            });
-
-            if (filtered.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-10 bg-cream-50 rounded-3xl border border-cream-200">
-                        <i class="ph ph-package text-4xl text-olive-600/40"></i>
-                        <p class="text-sm text-olive-800/70 mt-2">В этой категории ничего не найдено</p>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = filtered.map(p => {
-                const isLow = p.qty <= p.min;
-                const isZero = p.qty === 0;
-
-                const cardBorder = isZero
-                    ? 'border-terracotta-500 bg-terracotta-500/5'
-                    : isLow
-                        ? 'border-amber-400 bg-amber-50/60'
-                        : 'border-cream-200 bg-cream-50';
-
-                const statusBadge = isZero
-                    ? `<span class="px-2 py-0.5 rounded-lg bg-terracotta-500 text-white text-[11px] font-bold">Закончилось</span>`
-                    : isLow
-                        ? `<span class="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-800 text-[11px] font-bold">Мало (мин. ${p.min})</span>`
-                        : `<span class="text-[11px] text-olive-700/70">${p.category}</span>`;
-
-                return `
-                    <div class="rounded-3xl border ${cardBorder} p-3.5 shadow-xs transition">
-                        <div class="flex items-start justify-between gap-2 mb-3">
-                            <div>
-                                <div class="font-bold text-base text-olive-900 leading-snug">${p.name}</div>
-                                <div class="mt-1 flex items-center gap-2">${statusBadge}</div>
-                            </div>
-                            <div class="text-right shrink-0">
-                                <span class="text-xl font-extrabold ${isZero ? 'text-terracotta-600' : 'text-olive-900'}">${p.qty}</span>
-                                <span class="text-xs font-semibold text-olive-700">${p.unit}</span>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center gap-2">
-                            <button onclick="changeQty('${p.id}', -${p.step})"
-                                class="h-11 flex-1 rounded-2xl bg-cream-200 hover:bg-cream-300 text-olive-900 font-bold text-base flex items-center justify-center gap-1 active:scale-95 transition">
-                                <i class="ph-bold ph-minus"></i> ${p.step}
-                            </button>
-
-                            <button onclick="changeQty('${p.id}', ${p.step})"
-                                class="h-11 flex-1 rounded-2xl bg-olive-700 hover:bg-olive-800 text-cream-50 font-bold text-base flex items-center justify-center gap-1 active:scale-95 transition">
-                                <i class="ph-bold ph-plus"></i> ${p.step}
-                            </button>
-
-                            <button onclick="setZeroQty('${p.id}')" title="Отметить, что закончилось"
-                                class="h-11 px-3.5 rounded-2xl border border-terracotta-500/40 text-terracotta-700 hover:bg-terracotta-500 hover:text-white text-xs font-bold transition active:scale-95 shrink-0">
-                                0 / Нет
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
+            document.getElementById('selDbCalcKcal').textContent = `${kcal} ккал`;
+            document.getElementById('selDbCalcBju').textContent = `Б: ${p} • Ж: ${f} • У: ${c}`;
         }
 
-        function renderShoppingList() {
-            const lowItems = getLowStockProducts();
-            const container = document.getElementById('shoppingList');
-            const countEl = document.getElementById('shoppingTotalCount');
-            const buyAllBtn = document.getElementById('buyAllBtn');
-
-            countEl.textContent = `${lowItems.length} поз.`;
-
-            if (checkedShoppingIds.size > 0) {
-                buyAllBtn.innerHTML = `<i class="ph-bold ph-check-circle text-lg"></i> Куплено отмеченное (${checkedShoppingIds.size})`;
-            } else {
-                buyAllBtn.innerHTML = `<i class="ph-bold ph-check-circle text-lg"></i> Всё куплено → в запасы`;
-            }
-
-            if (lowItems.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-12 px-4 bg-cream-50 rounded-3xl border border-cream-200">
-                        <div class="w-14 h-14 rounded-full bg-olive-700/10 text-olive-700 flex items-center justify-center mx-auto mb-3">
-                            <i class="ph-fill ph-check-circle text-3xl"></i>
-                        </div>
-                        <h3 class="font-bold text-base text-olive-900">Список покупок пуст!</h3>
-                        <p class="text-xs text-olive-700/80 mt-1 max-w-xs mx-auto">
-                            Еда, средства гигиены и быта дома в достатке. Как только что-то закончится, оно появится здесь.
-                        </p>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = lowItems.map(p => {
-                const isChecked = checkedShoppingIds.has(p.id);
-                return `
-                    <div class="rounded-3xl border ${isChecked ? 'border-olive-600 bg-olive-700/5' : 'border-cream-200 bg-cream-50'} p-3.5 flex items-center justify-between gap-3 shadow-xs">
-                        <button onclick="toggleShoppingCheck('${p.id}')" class="flex items-center gap-3 text-left flex-1">
-                            <div class="w-7 h-7 rounded-xl border-2 flex items-center justify-center shrink-0 transition ${isChecked ? 'bg-olive-700 border-olive-700 text-white' : 'border-olive-600/40 bg-white'}">
-                                ${isChecked ? '<i class="ph-bold ph-check text-base"></i>' : ''}
-                            </div>
-                            <div>
-                                <div class="font-bold text-sm text-olive-900 ${isChecked ? 'line-through opacity-60' : ''}">${p.name}</div>
-                                <div class="text-xs text-olive-700/80 mt-0.5">
-                                    Осталось: <b>${p.qty} ${p.unit}</b> • Купить: <b class="text-terracotta-700">+${p.buyQty} ${p.unit}</b>
-                                </div>
-                            </div>
-                        </button>
-
-                        <button onclick="markAsBought('${p.id}')"
-                            class="px-3.5 py-2.5 rounded-2xl bg-olive-700 hover:bg-olive-800 text-cream-50 text-xs font-bold shrink-0 shadow-xs active:scale-95 transition">
-                            Купил +${p.buyQty}
-                        </button>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function renderRecipes() {
-            const container = document.getElementById('recipesList');
-
-            container.innerHTML = RECIPES.map(recipe => {
-                const ingBadges = recipe.ingredients.map(ing => {
-                    const prod = products.find(p => p.id === ing.id);
-                    const name = prod ? prod.name.split(' (')[0] : ing.id;
-                    const unit = prod ? prod.unit : 'г';
-                    const enough = prod && prod.qty >= ing.amount;
-                    return `
-                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-medium ${enough ? 'bg-cream-200/80 text-olive-900' : 'bg-terracotta-500/15 text-terracotta-700'}">
-                            ${name}: ${ing.amount} ${unit}
-                        </span>
-                    `;
-                }).join('');
-
-                return `
-                    <div class="bg-cream-50 border border-cream-200 rounded-3xl p-4 shadow-xs space-y-3">
-                        <div>
-                            <span class="inline-block px-2.5 py-0.5 rounded-lg bg-olive-700/10 text-olive-800 text-[11px] font-bold mb-1">
-                                ${recipe.tag}
-                            </span>
-                            <h3 class="font-bold text-base text-olive-900 leading-snug">${recipe.title}</h3>
-                        </div>
-
-                        <p class="text-xs text-olive-700/80 leading-relaxed">${recipe.desc}</p>
-
-                        <div class="flex flex-wrap gap-1.5">
-                            ${ingBadges}
-                        </div>
-
-                        <button onclick="cookRecipe('${recipe.id}')"
-                            class="w-full py-3 px-4 rounded-2xl bg-terracotta-500 hover:bg-terracotta-600 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-xs transition active:scale-[0.98]">
-                            <i class="ph-bold ph-fire text-lg"></i> Приготовил блюдо (списать)
-                        </button>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        // ==========================================
-        // 7. БАНКОВСКАЯ АНАЛИТИКА РАСХОДОВ
-        // ==========================================
-        function changeExpenseMonth(delta) {
-            selectedMonth += delta;
-            if (selectedMonth < 0) {
-                selectedMonth = 11;
-                selectedYear -= 1;
-            } else if (selectedMonth > 11) {
-                selectedMonth = 0;
-                selectedYear += 1;
-            }
-            renderExpenses();
-        }
-
-        function deleteExpense(id) {
-            expenses = expenses.filter(e => e.id !== id);
-            saveState();
-            renderExpenses();
-            showToast('Операция удалена');
-        }
-
-        function renderExpenses() {
-            const monthNames = [
-                'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-                'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
-            ];
-            document.getElementById('currentMonthLabel').textContent = `${monthNames[selectedMonth]} ${selectedYear}`;
-
-            // Фильтруем операции за выбранный месяц
-            const monthPrefix = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
-            const monthExpenses = expenses.filter(e => e.date && e.date.startsWith(monthPrefix));
-
-            const totalMonth = monthExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-            document.getElementById('donutTotalAmount').textContent = `${totalMonth.toLocaleString('ru-RU')} ₽`;
-            document.getElementById('expenseOpsCount').textContent = `${monthExpenses.length} опер.`;
-
-            // 1. Кольцевая диаграмма (Donut Chart)
-            const catSums = {};
-            Object.keys(EXPENSE_CATEGORIES).forEach(cat => catSums[cat] = 0);
-            monthExpenses.forEach(e => {
-                const cat = EXPENSE_CATEGORIES[e.category] ? e.category : 'Прочее';
-                catSums[cat] += Number(e.amount) || 0;
-            });
-
-            const svg = document.getElementById('donutChartSvg');
-            const radius = 46;
-            const circumference = 2 * Math.PI * radius;
-            let accumulatedPercent = 0;
-
-            let circlesHtml = `<circle cx="60" cy="60" r="${radius}" fill="none" stroke="#ECE4D3" stroke-width="16"></circle>`;
-
-            if (totalMonth > 0) {
-                Object.entries(catSums).forEach(([cat, val]) => {
-                    if (val <= 0) return;
-                    const percent = val / totalMonth;
-                    const dashLength = percent * circumference;
-                    const dashOffset = -accumulatedPercent * circumference;
-                    accumulatedPercent += percent;
-
-                    circlesHtml += `
-                        <circle cx="60" cy="60" r="${radius}" fill="none"
-                            stroke="${EXPENSE_CATEGORIES[cat].color}"
-                            stroke-width="16"
-                            stroke-dasharray="${dashLength} ${circumference}"
-                            stroke-dashoffset="${dashOffset}"
-                            class="transition-all duration-500">
-                        </circle>
-                    `;
-                });
-            }
-            svg.innerHTML = circlesHtml;
-
-            // Легенда категорий
-            const legendEl = document.getElementById('categoryLegend');
-            legendEl.innerHTML = Object.entries(EXPENSE_CATEGORIES).map(([cat, meta]) => {
-                const val = catSums[cat] || 0;
-                const pct = totalMonth > 0 ? Math.round((val / totalMonth) * 100) : 0;
-                return `
-                    <div class="flex items-center justify-between text-xs">
-                        <div class="flex items-center gap-2 min-w-0">
-                            <span class="w-3 h-3 rounded-full shrink-0" style="background-color: ${meta.color}"></span>
-                            <span class="font-medium text-olive-900 truncate">${cat}</span>
-                        </div>
-                        <div class="flex items-center gap-2 shrink-0">
-                            <span class="text-olive-700/60 font-medium">${pct}%</span>
-                            <span class="font-bold text-olive-900 w-16 text-right">${val.toLocaleString('ru-RU')} ₽</span>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            // 2. Столбчатый график по дням месяца
-            const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-            const dailyTotals = new Array(daysInMonth).fill(0);
-
-            monthExpenses.forEach(e => {
-                const day = parseInt(e.date.split('-')[2], 10);
-                if (day >= 1 && day <= daysInMonth) {
-                    dailyTotals[day - 1] += Number(e.amount) || 0;
+        function saveQuickMacro() {
+            if (currentFoodEntryMode === 'db') {
+                if (!selectedDbFoodItem) {
+                    showToast('Выберите продукт из списка выше', true);
+                    return;
                 }
-            });
+                const amount = Math.max(0, parseFloat(document.getElementById('selDbAmount').value) || 0);
+                if (amount <= 0) {
+                    showToast('Укажите количество больше 0', true);
+                    return;
+                }
 
-            const maxDayVal = Math.max(...dailyTotals, 1);
-            const realMaxDay = Math.max(...dailyTotals, 0);
-            document.getElementById('maxDayLabel').textContent = `Макс день: ${realMaxDay.toLocaleString('ru-RU')} ₽`;
+                const isPiece = selectedDbFoodItem.unit === 'шт' || selectedDbFoodItem.unit === 'банка';
+                const factor = isPiece ? amount : (amount / 100);
 
-            const barsContainer = document.getElementById('dailyBarsContainer');
-            barsContainer.innerHTML = dailyTotals.map((val, idx) => {
-                const heightPct = val > 0 ? Math.max(10, Math.round((val / maxDayVal) * 100)) : 4;
-                const barColor = val > 0 ? 'bg-olive-700 hover:bg-terracotta-500' : 'bg-cream-200';
-                return `
-                    <div class="flex-1 min-w-[6px] h-full flex flex-col justify-end group relative" title="${idx + 1} число: ${val} ₽">
-                        <div class="w-full rounded-t-md transition-all duration-300 ${barColor}" style="height: ${heightPct}%"></div>
-                    </div>
-                `;
-            }).join('');
+                const kcal = Math.round(selectedDbFoodItem.macros.kcal * factor);
+                const p = Math.round(selectedDbFoodItem.macros.p * factor * 10) / 10;
+                const f = Math.round(selectedDbFoodItem.macros.f * factor * 10) / 10;
+                const c = Math.round(selectedDbFoodItem.macros.c * factor * 10) / 10;
 
-            // 3. Список транзакций
-            const txList = document.getElementById('transactionsList');
-            if (monthExpenses.length === 0) {
-                txList.innerHTML = `
-                    <div class="text-center py-8 bg-cream-50 rounded-3xl border border-cream-200">
-                        <p class="text-xs text-olive-700/70">В этом месяце пока нет записанных расходов</p>
-                    </div>
-                `;
-                return;
+                addFoodLogEntry({
+                    title: `${selectedDbFoodItem.name} (${amount} ${selectedDbFoodItem.unit})`,
+                    kcal, p, f, c
+                });
+
+                // Списываем из запасов дома, если стоит галочка
+                let deductedMsg = '';
+                if (selectedDbFoodItem.inHome && document.getElementById('selDbDeductStock').checked) {
+                    const prod = products.find(pr => pr.id === selectedDbFoodItem.id);
+                    if (prod) {
+                        prod.qty = Math.max(0, Math.round((prod.qty - amount) * 10) / 10);
+                        deductedMsg = ' и списано с полки';
+                    }
+                }
+
+                saveState();
+                checkLowStockAlerts();
+                renderAll();
+                closeQuickMacroModal();
+                showToast(`+${kcal} ккал (Б: ${p} г) записано${deductedMsg}!`);
+            } else {
+                const name = document.getElementById('qmName').value.trim() || 'Приём пищи';
+                const kcal = Math.max(0, parseFloat(document.getElementById('qmKcal').value) || 0);
+                const p = Math.max(0, parseFloat(document.getElementById('qmProt').value) || 0);
+                const f = Math.max(0, parseFloat(document.getElementById('qmFat').value) || 0);
+                const c = Math.max(0, parseFloat(document.getElementById('qmCarb').value) || 0);
+
+                if (kcal === 0 && p === 0 && f === 0 && c === 0) {
+                    showToast('Введите хотя бы калории или белки', true);
+                    return;
+                }
+
+                addFoodLogEntry({ title: name, kcal, p, f, c });
+                saveState();
+                renderMacrosWidget();
+                closeQuickMacroModal();
+                showToast(`+${Math.round(kcal)} ккал записано в дневник!`);
             }
-
-            txList.innerHTML = monthExpenses.map(tx => {
-                const meta = EXPENSE_CATEGORIES[tx.category] || EXPENSE_CATEGORIES['Прочее'];
-                const formattedDate = tx.date.split('-').reverse().slice(0, 2).join('.');
-                return `
-                    <div class="bg-cream-50 border border-cream-200 rounded-2xl p-3 flex items-center justify-between gap-3">
-                        <div class="flex items-center gap-3 min-w-0">
-                            <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0" style="background-color: ${meta.color}">
-                                <i class="ph-fill ${meta.icon} text-lg"></i>
-                            </div>
-                            <div class="min-w-0">
-                                <div class="font-bold text-xs text-olive-900 truncate">${tx.title}</div>
-                                <div class="text-[11px] text-olive-700/70">${formattedDate} • ${tx.category}</div>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-2 shrink-0">
-                            <span class="font-extrabold text-sm text-olive-900">−${Number(tx.amount).toLocaleString('ru-RU')} ₽</span>
-                            <button onclick="deleteExpense('${tx.id}')" class="p-1.5 rounded-lg text-olive-600/50 hover:text-terracotta-600">
-                                <i class="ph ph-trash text-base"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
         }
-
-        function renderAll() {
-            renderInventory();
-            renderShoppingList();
-            renderRecipes();
-            renderExpenses();
-        }
-
-        // ==========================================
-        // 8. МОДАЛЬНЫЕ ОКНА
-        // ==========================================
+<!-- ... existing code ... -->
         function openAddModal() {
+            document.getElementById('newProdName').value = '';
+            document.getElementById('newProdQty').value = '500';
+            document.getElementById('newProdMin').value = '150';
+            document.getElementById('newProdBuy').value = '500';
+            document.getElementById('newProdKcal').value = '';
+            document.getElementById('newProdProt').value = '';
+            document.getElementById('newProdFat').value = '';
+            document.getElementById('newProdCarb').value = '';
+            document.getElementById('customCatInput').value = '';
+            document.getElementById('customCatBox').classList.add('hidden');
+            populateAddModalCategories();
             document.getElementById('addModal').classList.remove('hidden');
         }
-        function closeAddModal() {
-            document.getElementById('addModal').classList.add('hidden');
-        }
 
-        function addNewProduct() {
+        async function autoFillProductMacros() {
             const name = document.getElementById('newProdName').value.trim();
-            const category = document.getElementById('newProdCat').value;
             const unit = document.getElementById('newProdUnit').value;
-            const qty = Math.max(0, Number(document.getElementById('newProdQty').value) || 0);
-            const min = Math.max(0, Number(document.getElementById('newProdMin').value) || 0);
-            const buyQty = Math.max(1, Number(document.getElementById('newProdBuy').value) || 1);
-
             if (!name) {
-                showToast('Введите название!', true);
+                showToast('Сначала введите название продукта', true);
                 return;
             }
+            const btn = document.getElementById('autoMacroBtn');
+            const origHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<i class="ph-bold ph-spinner animate-spin"></i> Ищу...`;
 
-            const step = (unit === 'г' || unit === 'мл') ? 100 : 1;
-            products.unshift({
+            try {
+                const isPiece = unit === 'шт' || unit === 'банка';
+                const perText = isPiece ? `на 1 ${unit}` : `на 100 ${unit}`;
+                const prompt = `Дай реальные справочные значения КБЖУ для продукта "${name}" строго ${perText}. Верни ТОЛЬКО JSON: {"kcal": число, "p": число, "f": число, "c": число}. Если это несъедобный товар (шампунь, пакеты), верни нули.`;
+
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${userGeminiApiKey || ''}`;
+                const resp = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { responseMimeType: 'application/json' }
+                    })
+                });
+                const data = await resp.json();
+                const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                const parsed = JSON.parse(rawText);
+
+                document.getElementById('newProdKcal').value = parsed.kcal ?? 0;
+                document.getElementById('newProdProt').value = parsed.p ?? 0;
+                document.getElementById('newProdFat').value = parsed.f ?? 0;
+                document.getElementById('newProdCarb').value = parsed.c ?? 0;
+                showToast(`КБЖУ ${perText} найдено! Проверьте при желании по этикетке.`);
+            } catch (e) {
+                showToast('Не удалось автозаполнить — введите цифры с упаковки вручную', true);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
+        }
+<!-- ... existing code ... -->
+            const qty = Math.max(0, parseInt(document.getElementById('newProdQty').value, 10) || 0);
+            const min = Math.max(0, parseInt(document.getElementById('newProdMin').value, 10) || 0);
+            const buyQty = Math.max(1, parseInt(document.getElementById('newProdBuy').value, 10) || 1);
+
+            const kcal = Math.max(0, parseFloat(document.getElementById('newProdKcal').value) || 0);
+            const p = Math.max(0, parseFloat(document.getElementById('newProdProt').value) || 0);
+            const f = Math.max(0, parseFloat(document.getElementById('newProdFat').value) || 0);
+            const c = Math.max(0, parseFloat(document.getElementById('newProdCarb').value) || 0);
+
+            const step = (unit === 'шт' || unit === 'уп' || unit === 'банка' || unit === 'рул') ? 1 : 100;
+
+            const newItem = {
                 id: 'custom_' + Date.now(),
                 name,
                 category,
                 qty,
                 min,
                 step,
-                buyQty,
-                unit
-            });
+                unit,
+                buyQty
+            };
 
-            document.getElementById('newProdName').value = '';
-            closeAddModal();
-            saveState();
-            checkLowStockAlerts(qty <= min ? name : null);
-            renderAll();
-            showToast(`«${name}» добавлено в запасы!`);
-        }
-
-        function openExpenseModal() {
-            document.getElementById('expDate').value = getTodayISO();
-            document.getElementById('expenseModal').classList.remove('hidden');
-        }
-        function closeExpenseModal() {
-            document.getElementById('expenseModal').classList.add('hidden');
-        }
-
-        function saveManualExpense() {
-            const amount = Number(document.getElementById('expAmount').value);
-            const category = document.getElementById('expCategory').value;
-            const title = document.getElementById('expTitle').value.trim() || category;
-            const date = document.getElementById('expDate').value || getTodayISO();
-
-            if (!amount || amount <= 0) {
-                showToast('Введите корректную сумму!', true);
-                return;
+            if (kcal > 0 || p > 0 || f > 0 || c > 0) {
+                newItem.macros = { kcal, p, f, c };
             }
 
-            expenses.unshift({
-                id: 'exp_' + Date.now(),
-                date,
-                title,
-                category,
-                amount: Math.round(amount)
-            });
+            products.unshift(newItem);
 
-            document.getElementById('expAmount').value = '';
-            document.getElementById('expTitle').value = '';
-            closeExpenseModal();
             saveState();
-            renderExpenses();
-            showToast(`Трата ${amount} ₽ записана!`);
-        }
-
-        function openResetModal() {
-            document.getElementById('resetModal').classList.remove('hidden');
-        }
-        function closeResetModal() {
-            document.getElementById('resetModal').classList.add('hidden');
-        }
-        function confirmReset() {
-            products = JSON.parse(JSON.stringify(INITIAL_PRODUCTS));
-            checkedShoppingIds.clear();
-            saveState();
-            closeResetModal();
-            checkLowStockAlerts();
+            closeAddModal();
             renderAll();
-            showToast('Запасы сброшены к базовому набору!');
+            showToast(`Добавлено: ${name}`);
         }
-
-        function openSettingsModal() {
-            document.getElementById('geminiApiKeyInput').value = userGeminiApiKey;
-            document.getElementById('settingsModal').classList.remove('hidden');
-        }
-        function closeSettingsModal() {
-            document.getElementById('settingsModal').classList.add('hidden');
-        }
-        function saveApiKey() {
-            userGeminiApiKey = document.getElementById('geminiApiKeyInput').value.trim();
-            saveState();
-            closeSettingsModal();
-            showToast(userGeminiApiKey ? 'API-ключ сохранён!' : 'API-ключ очищен');
-        }
-
-        function exportBackupData() {
-            const backup = {
-                version: 2,
-                exportedAt: new Date().toISOString(),
-                products,
-                expenses
-            };
-            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `home-budget-backup-${getTodayISO()}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showToast('Файл резервной копии скачан!');
-        }
-
-        function importBackupData(event) {
-            const file = event.target.files?.[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    if (Array.isArray(data.products)) products = data.products;
-                    if (Array.isArray(data.expenses)) expenses = data.expenses;
-                    saveState();
-                    checkLowStockAlerts();
-                    renderAll();
-                    closeSettingsModal();
-                    showToast('Данные успешно восстановлены из копии!');
-                } catch (err) {
-                    showToast('Ошибка чтения файла копии', true);
-                }
-            };
-            reader.readAsText(file);
-            event.target.value = '';
-        }
-
-        // Инициализация
-        window.addEventListener('DOMContentLoaded', () => {
-            loadState();
-            checkLowStockAlerts();
-            renderAll();
-        });
-    </script>
-</body>
-</html>
